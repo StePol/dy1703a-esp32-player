@@ -25,6 +25,13 @@ public:
 
     void setVolume(uint8_t level); // 0-30
 
+    // Opýta sa modulu na aktuálny stav prehrávania cez UART (príkaz 0x01).
+    // Vráti surový stavový bajt modulu (1 = hrá), alebo 0xFF pri chybe/timeoute.
+    uint8_t checkPlayState();
+
+    // Pohodlná skratka: true, ak modul práve prehráva.
+    bool isPlaying();
+
     // Zavolaj pravidelne v loop() ak chceš spracovávať odpovede modulu
     // (napr. potvrdenie stavu prehrávania).
     void poll();

@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include "config.h"
 #include "DY1703A.h"
+#include "BatteryMonitor.h"
 
 HardwareSerial DYSerial(DY_UART_NUM);
 DY1703A player(DYSerial);
+BatteryMonitor battery(BATTERY_ADC_PIN, BATTERY_R_TOP, BATTERY_R_BOTTOM);
 
 struct TrackButton {
     uint8_t pin;
@@ -50,6 +52,8 @@ void setup() {
     player.begin(DY_BAUD_RATE);
     player.setVolume(currentVolume);
 
+    battery.begin();
+
     // TODO: init WiFi/web servera (lib/AudioWeb) a BLE (lib/AudioBLE)
     // podľa toho, ktoré rozhranie chceš mať aktívne súčasne s tlačidlami.
 
@@ -59,6 +63,17 @@ void setup() {
 void loop() {
     handleButtons();
     player.poll();
+
+    static unsigned long lastBatteryRead = 0;
+    unsigned long now = millis();
+
+    if (now - lastBatteryRead >= BATTERY_READ_INTERVAL_MS) {
+        lastBatteryRead = now;
+        uint32_t mv = battery.readVoltageMv();
+        uint8_t pct = battery.readPercent();
+        Serial.printf("Batéria: %lu mV (~%u%%)\n", mv, pct);
+        // TODO: sprístupniť tieto hodnoty aj cez web/BLE (lib/AudioWeb, lib/AudioBLE)
+    }
 
     // TODO: obsluha web serveru / BLE eventov
 }

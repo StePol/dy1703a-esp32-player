@@ -21,5 +21,8 @@ constexpr uint8_t TRACK_BUTTON_PINS[8] = {13, 14, 27, 26, 25, 33, 32, 15};
 // --- BLE ---
 #define BLE_DEVICE_NAME "DY1703A-Player"
 
-// --- Batéria (voliteľné, ADC delič) ---
-#define BATTERY_ADC_PIN 34
+// --- Batéria (odporový delič napätia) ---
+#define BATTERY_ADC_PIN   34      // ADC1, input-only pin, vhodný na meranie
+#define BATTERY_R_TOP     100000.0f  // 100kΩ, BAT+ -> ADC pin
+#define BATTERY_R_BOTTOM  100000.0f  // 100kΩ, ADC pin -> GND
+#define BATTERY_READ_INTERVAL_MS 10000

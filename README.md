@@ -18,6 +18,7 @@ Zariadenie je napájané z Li-ion/LiPo batérie a ponúka tri spôsoby ovládani
 | Boost prevodník 5V     | napr. MT3608                               |
 | Reproduktor            | 4-8Ω, do 5W                                |
 | Tlačidlá               | 2x 4-tlačidlová klávesnica = 8 skladieb, každé tlačidlo vlastný GPIO |
+| Vibračný motorček       | 3V DC, spínaný hardvérovo cez BUSY výstup (BC547+BC557), bez zásahu ESP32 |
 
 Schéma zapojenia: pozri [`docs/wiring.md`](docs/wiring.md).
 

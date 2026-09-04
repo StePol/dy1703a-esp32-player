@@ -1,20 +1,19 @@
 #include "DY1703A.h"
 
-// Rámec príkazu podľa bežného DY-SV17F/DYPlayer protokolu:
+// Rámec príkazu podľa oficiálneho datasheetu SEN-17-096 (docs/SEN-17-096-DataSheet.pdf):
 // [0xAA] [CMD] [LEN] [DATA...] [CHECKSUM]
-// Checksum = súčet všetkých predchádzajúcich bajtov (mod 256).
-// Over si presné kódy príkazov podľa datasheetu svojho modulu — tieto
-// hodnoty vychádzajú z bežne používaného DY-SV17F setu a sú len štartovací bod.
+// Checksum = nízkych 8 bitov súčtu všetkých predchádzajúcich bajtov (start kód + dáta).
 
 namespace {
 constexpr uint8_t START_BYTE   = 0xAA;
+constexpr uint8_t CMD_CHECK_PLAY_STATE = 0x01;
 constexpr uint8_t CMD_PLAY     = 0x02;
 constexpr uint8_t CMD_PAUSE    = 0x03;
 constexpr uint8_t CMD_STOP     = 0x04;
-constexpr uint8_t CMD_NEXT     = 0x05;
-constexpr uint8_t CMD_PREV     = 0x06;
-constexpr uint8_t CMD_PLAY_NUM = 0x07;
-constexpr uint8_t CMD_VOLUME   = 0x13;
+constexpr uint8_t CMD_PREV     = 0x05; // datasheet: Previous = AA 05 00 AF
+constexpr uint8_t CMD_NEXT     = 0x06; // datasheet: Next     = AA 06 00 B0
+constexpr uint8_t CMD_PLAY_NUM = 0x07; // Specified Song: AA 07 02 S.N.H S.N.L SM
+constexpr uint8_t CMD_VOLUME   = 0x13; // Set Volume: AA 13 01 VOL SM
 }
 
 DY1703A::DY1703A(HardwareSerial &serial) : _serial(serial) {}
@@ -48,14 +47,47 @@ void DY1703A::next()     { sendCommand(CMD_NEXT); }
 void DY1703A::previous() { sendCommand(CMD_PREV); }
 
 void DY1703A::playTrack(uint8_t trackNumber) {
-    uint8_t data[1] = { trackNumber };
-    sendCommand(CMD_PLAY_NUM, data, 1);
+    // Specified Song: AA 07 02 S.N.H S.N.L SM — číslo skladby je 16-bitové,
+    // vysoký bajt prvý. Pri max. 8 skladbách stačí S.N.H = 0.
+    uint8_t data[2] = { 0x00, trackNumber };
+    sendCommand(CMD_PLAY_NUM, data, 2);
 }
 
 void DY1703A::setVolume(uint8_t level) {
     if (level > 30) level = 30;
     uint8_t data[1] = { level };
     sendCommand(CMD_VOLUME, data, 1);
+}
+
+uint8_t DY1703A::checkPlayState() {
+    // Vyprázdni prípadné staré dáta v RX bufferi pred novým dotazom.
+    while (_serial.available()) {
+        _serial.read();
+    }
+
+    sendCommand(CMD_CHECK_PLAY_STATE);
+
+    // Odpoveď podľa datasheetu: AA 01 01 <stav> <checksum> (5 bajtov)
+    // stav: 00 = stop, 01 = play, 02 = pause
+    uint8_t buf[5];
+    uint8_t idx = 0;
+    unsigned long start = millis();
+
+    while (idx < 5 && (millis() - start) < 100) {
+        if (_serial.available()) {
+            buf[idx++] = _serial.read();
+        }
+    }
+
+    if (idx == 5 && buf[0] == START_BYTE && buf[1] == CMD_CHECK_PLAY_STATE) {
+        return buf[3];
+    }
+
+    return 0xFF; // chyba / timeout / žiadna odpoveď
+}
+
+bool DY1703A::isPlaying() {
+    return checkPlayState() == 0x01; // 01 = play (podľa datasheetu)
 }
 
 void DY1703A::poll() {
