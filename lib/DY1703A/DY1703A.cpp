@@ -18,8 +18,8 @@ constexpr uint8_t CMD_VOLUME   = 0x13; // Set Volume: AA 13 01 VOL SM
 
 DY1703A::DY1703A(HardwareSerial &serial) : _serial(serial) {}
 
-void DY1703A::begin(unsigned long baud) {
-    _serial.begin(baud, SERIAL_8N1, DY_RX_PIN, DY_TX_PIN);
+void DY1703A::begin(unsigned long baud, uint8_t rxPin, uint8_t txPin) {
+    _serial.begin(baud, SERIAL_8N1, rxPin, txPin);
 }
 
 void DY1703A::sendCommand(uint8_t cmd, const uint8_t *data, uint8_t len) {

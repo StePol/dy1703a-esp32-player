@@ -11,7 +11,7 @@ class DY1703A {
 public:
     explicit DY1703A(HardwareSerial &serial);
 
-    void begin(unsigned long baud = 9600);
+    void begin(unsigned long baud, uint8_t rxPin, uint8_t txPin);
 
     void play();
     void pause();

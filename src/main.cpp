@@ -1,79 +1,110 @@
 #include <Arduino.h>
 #include "config.h"
 #include "DY1703A.h"
-#include "BatteryMonitor.h"
+
+// ============================================================================
+// TESTOVACÍ FIRMVÉR — overenie UART komunikácie s DY1703A
+//
+// Cez sériový monitor (115200 baud) zadávaj príkazy:
+//   1-8   prehraj skladbu č. 1-8
+//   p     pauza
+//   r     pokračovať v prehrávaní
+//   s     stop
+//   n     ďalšia skladba
+//   b     predchádzajúca skladba
+//   +/-   hlasitosť hore/dole
+//   ?     táto nápoveda
+//
+// Každú sekundu sa navyše vypíše aktuálny stav modulu (dotaz cez UART),
+// aby bolo vidieť, či komunikácia funguje obojsmerne.
+// ============================================================================
 
 HardwareSerial DYSerial(DY_UART_NUM);
 DY1703A player(DYSerial);
-BatteryMonitor battery(BATTERY_ADC_PIN, BATTERY_R_TOP, BATTERY_R_BOTTOM);
-
-struct TrackButton {
-    uint8_t pin;
-    uint8_t trackNumber; // 1-8
-    bool lastState;
-    unsigned long lastChangeMs;
-};
-
-TrackButton buttons[8];
 
 uint8_t currentVolume = 20;
+unsigned long lastStatusMs = 0;
 
-void setupButtons() {
-    for (uint8_t i = 0; i < 8; i++) {
-        buttons[i].pin = TRACK_BUTTON_PINS[i];
-        buttons[i].trackNumber = i + 1;
-        buttons[i].lastState = HIGH;
-        buttons[i].lastChangeMs = 0;
-        pinMode(buttons[i].pin, INPUT_PULLUP);
+void printHelp() {
+    Serial.println();
+    Serial.println(F("=== DY1703A UART test ==="));
+    Serial.println(F("1-8  prehrat skladbu 1-8"));
+    Serial.println(F("p    pauza"));
+    Serial.println(F("r    pokracovat v prehravani"));
+    Serial.println(F("s    stop"));
+    Serial.println(F("n    dalsia skladba"));
+    Serial.println(F("b    predchadzajuca skladba"));
+    Serial.println(F("+/-  hlasitost hore/dole"));
+    Serial.println(F("?    tato napoveda"));
+    Serial.println(F("========================="));
+}
+
+void printPlayState(uint8_t state) {
+    Serial.print(F("Stav modulu: "));
+    switch (state) {
+        case 0:    Serial.println(F("stop")); break;
+        case 1:    Serial.println(F("hra")); break;
+        case 2:    Serial.println(F("pauza")); break;
+        case 0xFF: Serial.println(F("bez odpovede (timeout) - skontroluj zapojenie TX/RX a CON piny")); break;
+        default:   Serial.printf("neznamy kod 0x%02X\n", state); break;
     }
 }
 
-void handleButtons() {
-    unsigned long now = millis();
+void handleSerialInput() {
+    if (!Serial.available()) return;
 
-    for (auto &b : buttons) {
-        bool state = digitalRead(b.pin);
-        if (state != b.lastState && (now - b.lastChangeMs) > BTN_DEBOUNCE_MS) {
-            b.lastChangeMs = now;
-            b.lastState = state;
+    char c = Serial.read();
 
-            if (state == LOW) { // stlačené (aktívne LOW)
-                player.playTrack(b.trackNumber);
-                Serial.printf("Tlačidlo %u -> skladba %u\n", b.pin, b.trackNumber);
-            }
-        }
+    if (c >= '1' && c <= '8') {
+        uint8_t track = c - '0';
+        Serial.printf("-> prehravam skladbu %u\n", track);
+        player.playTrack(track);
+    } else if (c == 'p') {
+        Serial.println(F("-> pauza"));
+        player.pause();
+    } else if (c == 'r') {
+        Serial.println(F("-> pokracovanie prehravania"));
+        player.play();
+    } else if (c == 's') {
+        Serial.println(F("-> stop"));
+        player.stop();
+    } else if (c == 'n') {
+        Serial.println(F("-> dalsia skladba"));
+        player.next();
+    } else if (c == 'b') {
+        Serial.println(F("-> predchadzajuca skladba"));
+        player.previous();
+    } else if (c == '+') {
+        currentVolume = (currentVolume < 30) ? currentVolume + 1 : 30;
+        player.setVolume(currentVolume);
+        Serial.printf("-> hlasitost %u\n", currentVolume);
+    } else if (c == '-') {
+        currentVolume = (currentVolume > 0) ? currentVolume - 1 : 0;
+        player.setVolume(currentVolume);
+        Serial.printf("-> hlasitost %u\n", currentVolume);
+    } else if (c == '?') {
+        printHelp();
     }
+    // ostatné znaky (napr. Enter/newline) ignorujeme
 }
 
 void setup() {
     Serial.begin(115200);
-    setupButtons();
+    delay(300);
 
-    player.begin(DY_BAUD_RATE);
+    player.begin(DY_BAUD_RATE, DY_RX_PIN, DY_TX_PIN);
     player.setVolume(currentVolume);
 
-    battery.begin();
-
-    // TODO: init WiFi/web servera (lib/AudioWeb) a BLE (lib/AudioBLE)
-    // podľa toho, ktoré rozhranie chceš mať aktívne súčasne s tlačidlami.
-
-    Serial.println("DY1703A ESP32 Player – ready");
+    printHelp();
 }
 
 void loop() {
-    handleButtons();
-    player.poll();
+    handleSerialInput();
 
-    static unsigned long lastBatteryRead = 0;
     unsigned long now = millis();
-
-    if (now - lastBatteryRead >= BATTERY_READ_INTERVAL_MS) {
-        lastBatteryRead = now;
-        uint32_t mv = battery.readVoltageMv();
-        uint8_t pct = battery.readPercent();
-        Serial.printf("Batéria: %lu mV (~%u%%)\n", mv, pct);
-        // TODO: sprístupniť tieto hodnoty aj cez web/BLE (lib/AudioWeb, lib/AudioBLE)
+    if (now - lastStatusMs >= 1000) {
+        lastStatusMs = now;
+        uint8_t state = player.checkPlayState();
+        printPlayState(state);
     }
-
-    // TODO: obsluha web serveru / BLE eventov
 }
