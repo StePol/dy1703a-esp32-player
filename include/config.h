@@ -24,19 +24,19 @@ constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
 #define BTN_DEBOUNCE_MS 40
 
 // --- WiFi / web rozhranie ---
+// Predvolené údaje. Hodnoty nastavené cez web sa ukladajú do NVS ESP32
+// a po reštarte majú prednosť pred týmito predvolenými hodnotami.
 #define WIFI_AP_SSID    "DY1703A-Player"
 #define WIFI_AP_PASS    "password"
 #define WEB_SERVER_PORT 80
 
-// Ak sú nastavené údaje lokálnej WiFi, ESP32 sa po štarte/potrebnom
-// prebudení najprv pokúsi pripojiť ako WiFi klient (STA).
-// Ak sa pripojenie nepodarí v stanovenom čase, spustí vlastný AP.
+// Ak je tu SSID vyplnené, použije sa ako počiatočné STA nastavenie,
+// pokiaľ ešte neexistuje uložené nastavenie v NVS.
 #define WIFI_STA_SSID   ""
 #define WIFI_STA_PASS   ""
 #define WIFI_STA_TIMEOUT_MS 15000UL
 
-// Po stlačení fyzického tlačidla sa zapne WiFi, ak ešte nie je aktívna.
-// Používateľ má tento čas na pripojenie mobilu v AP režime.
+// V AP režime má používateľ tento čas na prvé pripojenie mobilu.
 #define WIFI_CONNECT_TIMEOUT_MS 90000UL   // 90 s na prvé pripojenie
 
 // Po odpojení posledného WiFi klienta zostane AP ešte chvíľu aktívny,
