@@ -68,10 +68,21 @@ web/BLE bez konfliktu s tlačidlami.
 | 2           | 1         | 5        | 25   |
 | 2           | 2         | 6        | 33   |
 | 2           | 3         | 7        | 32   |
-| 2           | 4         | 8        | 15   |
+| 2           | 4         | 8        | 35   |
 
-Každé tlačidlo je zapojené medzi príslušný GPIO a GND (aktívne v LOW,
-využíva sa interný `INPUT_PULLUP` v ESP32 — netreba externé rezistory).
+Každé tlačidlo je zapojené medzi príslušný GPIO a GND (aktívne v LOW).
+Sedem z ôsmich tlačidiel využíva interný `INPUT_PULLUP` v ESP32 (netreba
+externé rezistory). **Výnimka: GPIO35** je input-only pin (rovnako ako
+GPIO34 na batériu) — nemá interný pull-up, preto potrebuje **externý
+pull-up rezistor 10kΩ medzi GPIO35 a 3.3V**.
+
+```
+3.3V ---[10kΩ]---+--- GPIO35
+                  |
+              Tlačidlo 8
+                  |
+                 GND
+```
 
 > GPIO12 je zámerne vynechané — je to boot-strapping pin (MTDI), ktorý pri
 > nesprávnom stave počas štartu môže zmeniť napäťovú úroveň flash pamäte a
@@ -143,28 +154,82 @@ CON3 (BUSY) ──┬──────────────►|── [10kΩ
 > motor (ten je čisto hardvérový) — necháva sa v knižnici pre prípadné
 > budúce zobrazenie stavu prehrávania cez web/BLE rozhranie.
 
-## Meranie napätia batérie
+## Meranie napätia batérie (spínaný delič, nulový pokojový odber)
 
-Odporový delič napätia na ADC pin ESP32 (GPIO34) meria napätie priamo na
-batérii (pred boost prevodníkom), aby firmvér vedel odhadnúť stav nabitia.
+Namiesto trvalo pripojeného deliča (ktorý by neustále, aj vo vypnutom
+stave, mierne vyťahoval prúd z batérie) používame **vysokostranový
+spínač** — delič sa pripojí na batériu len na pár milisekúnd počas
+merania, inak je odpojený.
+
+### Potrebné súčiastky
+
+- 1x **P-MOSFET** — BSS84 (Q1)
+- 1x **N-MOSFET** — BS170 (Q2)
+- 2x rezistor **100kΩ** (R_TOP, R_BOTTOM — samotný delič)
+- 1x rezistor **10kΩ** (R_GATE_PULLUP — pull-up gate Q1 na BAT+)
+- 1x rezistor **1kΩ** (sériový rezistor GPIO → gate Q2)
+- 1x rezistor **10kΩ** (pull-down gate Q2 na GND)
+
+### Zapojenie
 
 ```
-BAT+ ---[R_TOP 100kΩ]---+---[R_BOTTOM 100kΩ]--- GND
-                          |
-                        GPIO34 (ADC1)
+BAT+ ---[S  Q1 (BSS84)  D]---[R_TOP 100kΩ]---+---[R_BOTTOM 100kΩ]--- GND
+          |                                   |
+          |                                 GPIO34 (ADC1, meranie)
+     [R_GATE_PULLUP 10kΩ]
+          |
+        gate Q1 -------------------------[D  Q2 (BS170)  S]--- GND
+                                                |
+                                          [R_Q2_PULLDOWN 10kΩ]
+                                                |
+                                               GND
+                                                |
+                                          gate Q2
+                                                |
+                                          [1kΩ sériový]
+                                                |
+                                          GPIO23 (BATTERY_ENABLE_PIN)
 ```
 
-- Delič zníži max. napätie batérie (~4.2V) na ~2.1V na ADC pine — bezpečne
-  v rozsahu, ktorý ESP32 ADC dokáže presne merať.
-- **Potrebuješ 2 ďalšie rezistory** (100kΩ + 100kΩ) — tie 3, čo už máš,
-  sú vyhradené na CON piny DY1703A modulu (viď vyššie).
-- GPIO34 je input-only pin (žiadny interný pull-up/down), preto sa sem
-  hodí presne na analógové meranie — na tlačidlo by nebol vhodný.
-- Delič mierne priebežne odoberá prúd z batérie (~21µA pri 4.2V, 200kΩ
-  celkovo) aj keď je zariadenie vypnuté — zanedbateľné, ale ak by ti to
-  prekážalo, dá sa doplniť vysokoúrovňový spínač (napr. P-MOSFET), ktorý
-  delič odpojí, keď zariadenie nemeria.
-- Firmvér (`lib/BatteryMonitor`) číta napätie každých 10s a prepočíta ho
-  na orientačné percento (lineárna aproximácia 3.0V=0% až 4.2V=100% —
-  skutočná vybíjacia krivka Li-ion nie je lineárna, takže presnosť je len
-  orientačná).
+**Princíp:**
+- Pokoj (GPIO23 = LOW): Q2 vypnutý → gate Q1 ťahaný cez R_GATE_PULLUP
+  na BAT+ → Vgs(Q1)=0 → Q1 vypnutý → delič úplne odpojený, **nulový
+  pokojový prúd**.
+- Meranie (GPIO23 = HIGH na pár ms): Q2 zopne → stiahne gate Q1 na GND
+  → Q1 zopne → delič pripojený na batériu → ADC na GPIO34 prečíta
+  napätie → firmvér hneď vypne GPIO23 späť na LOW.
+
+Firmvér (`lib/BatteryMonitor::readVoltageMv()`) toto spínanie robí
+automaticky pri každom meraní (5ms na ustálenie, potom priemer z 8
+vzoriek ADC, potom vypnutie) — netreba nič riadiť ručne.
+
+> Toto zapojenie (BSS84 + BS170) je overený vzor z iného projektu
+> (Raspberry Pi Pico), len prepojený na iné GPIO čísla kvôli inému
+> rozloženiu pinov na ESP32. Presné hodnoty rezistorov v pôvodnej
+> schéme sa môžu mierne líšiť — vyššie uvedené hodnoty (100k/100k pre
+> samotný delič) sú odvodené z nášho pôvodného jednoduchého návrhu a
+> na funkčnosť princípu nemajú vplyv, len na presný pomer merania.
+
+## Light sleep pri nečinnosti
+
+Žiadne dodatočné súčiastky netreba — ide čisto o firmvér. Ak sa 30s
+(`INACTIVITY_TIMEOUT_MS`) nestlačí žiadne tlačidlo a modul nič nehrá,
+ESP32 prejde do **light sleep** (CPU zastavený, RAM aj stav programu
+zachované, spotreba rádovo desiatky až stovky µA namiesto desiatok mA).
+
+**Prebudenie:**
+- Stlačením ktoréhokoľvek z 8 tlačidiel (`gpio_wakeup_enable()` na LOW
+  úroveň — funguje priamo na existujúcom aktívne-LOW zapojení, netreba
+  meniť HW ani pridávať diódy).
+- Alebo periodicky každých 5s (`LIGHT_SLEEP_CHECK_INTERVAL_MS`) ako
+  poistka — po takomto "kontrolnom" prebudení sa zariadenie hneď vráti
+  späť do spánku, ak stále nie je čo robiť.
+
+**Prečo light sleep, nie deep sleep:** klasický ESP32 (nie S2/S3) pri
+deep sleep podporuje budenie na viacerých pinoch len v režime "všetky
+musia byť LOW súčasne" alebo "ktorýkoľvek HIGH" — ani jedno nesedí na
+"ktorékoľvek z 8 aktívne-LOW tlačidiel" bez dodatočného HW (diódy).
+Light sleep toto obmedzenie nemá (funguje na úrovni GPIO matrixu, nie
+len RTC), takže je to jednoduchšie riešenie bez zásahu do zapojenia
+tlačidiel — za cenu vyššej spotreby v spánku než pri deep sleep.
+
