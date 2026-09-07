@@ -25,11 +25,18 @@ constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
 
 // --- WiFi / web rozhranie ---
 #define WIFI_AP_SSID    "DY1703A-Player"
-#define WIFI_AP_PASS    "zmen-toto-heslo"
+#define WIFI_AP_PASS    "password"
 #define WEB_SERVER_PORT 80
 
-// Po stlačení fyzického tlačidla sa zapne WiFi AP.
-// Používateľ má tento čas na pripojenie mobilu.
+// Ak sú nastavené údaje lokálnej WiFi, ESP32 sa po štarte/potrebnom
+// prebudení najprv pokúsi pripojiť ako WiFi klient (STA).
+// Ak sa pripojenie nepodarí v stanovenom čase, spustí vlastný AP.
+#define WIFI_STA_SSID   ""
+#define WIFI_STA_PASS   ""
+#define WIFI_STA_TIMEOUT_MS 15000UL
+
+// Po stlačení fyzického tlačidla sa zapne WiFi, ak ešte nie je aktívna.
+// Používateľ má tento čas na pripojenie mobilu v AP režime.
 #define WIFI_CONNECT_TIMEOUT_MS 90000UL   // 90 s na prvé pripojenie
 
 // Po odpojení posledného WiFi klienta zostane AP ešte chvíľu aktívny,
@@ -52,6 +59,6 @@ constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
 
 // --- Light sleep pri nečinnosti ---
 // WiFi musí byť vypnutá, aby sa ESP32 mohlo spoľahlivo uspať.
-// Ak je WiFi AP aktívne, zariadenie zostáva hore.
+// Ak je WiFi aktívne, zariadenie zostáva hore.
 #define INACTIVITY_TIMEOUT_MS         30000UL  // 30s bez tlačidla/hrania -> spánok
 #define LIGHT_SLEEP_CHECK_INTERVAL_MS 5000UL  // periodické budenie ako poistka
