@@ -38,6 +38,7 @@ public:
 
 private:
     HardwareSerial &_serial;
+    bool _traceNextStateResponse = false;
 
     void sendCommand(uint8_t cmd, const uint8_t *data = nullptr, uint8_t len = 0);
 };
