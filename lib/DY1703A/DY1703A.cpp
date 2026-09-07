@@ -62,33 +62,32 @@ void DY1703A::sendCommand(uint8_t cmd, const uint8_t *data, uint8_t len) {
     }
     frame[idx++] = static_cast<uint8_t>(checksum & 0xFF);
 
-    Serial.printf("[DY1703A TX] %s | ", commandName(cmd));
-    printFrame("HEX: ", frame, idx);
+    // Dotaz na stav sa používa interne na zisťovanie prehrávania,
+    // ale do sériového monitora sa nevypisuje.
+    if (cmd != CMD_CHECK_PLAY_STATE) {
+        Serial.printf("[DY1703A TX] %s | ", commandName(cmd));
+        printFrame("HEX: ", frame, idx);
+    }
     _serial.write(frame, idx);
 }
 
 void DY1703A::play() {
-    _traceNextStateResponse = true;
     sendCommand(CMD_PLAY);
 }
 
 void DY1703A::pause() {
-    _traceNextStateResponse = true;
     sendCommand(CMD_PAUSE);
 }
 
 void DY1703A::stop() {
-    _traceNextStateResponse = true;
     sendCommand(CMD_STOP);
 }
 
 void DY1703A::next() {
-    _traceNextStateResponse = true;
     sendCommand(CMD_NEXT);
 }
 
 void DY1703A::previous() {
-    _traceNextStateResponse = true;
     sendCommand(CMD_PREV);
 }
 
@@ -96,7 +95,6 @@ void DY1703A::playTrack(uint8_t trackNumber) {
     // Specified Song: AA 07 02 S.N.H S.N.L SM — číslo skladby je 16-bitové,
     // vysoký bajt prvý. Pri max. 8 skladbách stačí S.N.H = 0.
     uint8_t data[2] = { 0x00, trackNumber };
-    _traceNextStateResponse = true;
     Serial.printf("[DY1703A] Spúšťam skladbu č. %u\n", trackNumber);
     sendCommand(CMD_PLAY_NUM, data, 2);
 }
@@ -113,6 +111,9 @@ uint8_t DY1703A::checkPlayState() {
         _serial.read();
     }
 
+    // Dotaz na stav zostáva aktívny, pretože main.cpp ho používa
+    // na riadenie vibrácií a sledovanie prehrávania. Do Serial monitora
+    // sa však zámerne nevypisuje ani dotaz, ani jeho odpoveď.
     sendCommand(CMD_CHECK_PLAY_STATE);
 
     // Odpoveď podľa datasheetu: AA 01 01 <stav> <checksum> (5 bajtov)
@@ -128,29 +129,7 @@ uint8_t DY1703A::checkPlayState() {
     }
 
     if (idx == 5 && buf[0] == START_BYTE && buf[1] == CMD_CHECK_PLAY_STATE) {
-        if (_traceNextStateResponse) {
-            _traceNextStateResponse = false;
-            const char *stateText = "NEZNAMY STAV";
-            switch (buf[3]) {
-                case 0x00: stateText = "STOP - nehra"; break;
-                case 0x01: stateText = "PLAY - prehrava"; break;
-                case 0x02: stateText = "PAUZA"; break;
-            }
-            Serial.printf("[DY1703A RX] Odpoved na dotaz o stave | HEX: ");
-            printFrame("", buf, 5);
-            Serial.printf("[DY1703A RX] Stav: 0x%02X -> %s\n", buf[3], stateText);
-        }
         return buf[3];
-    }
-
-    if (_traceNextStateResponse) {
-        _traceNextStateResponse = false;
-        if (idx > 0) {
-            Serial.printf("[DY1703A RX] Neplatna/neuplna odpoved (%u/5 bajtov) | HEX: ", idx);
-            printFrame("", buf, idx);
-        } else {
-            Serial.println("[DY1703A RX] Ziadna odpoved do 100 ms (timeout)");
-        }
     }
 
     return 0xFF;
@@ -162,6 +141,6 @@ bool DY1703A::isPlaying() {
 
 void DY1703A::poll() {
     while (_serial.available()) {
-        _serial.read(); // Odpovede na stav sa spracuvaju v checkPlayState().
+        _serial.read(); // Odpovede na stav sa spracuvavaju v checkPlayState().
     }
 }
