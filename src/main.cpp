@@ -38,6 +38,7 @@ String deviceName;
 String apSsid;
 String staSsid;
 String staPassword;
+String trackNames[8];
 
 bool isInputOnlyPin(uint8_t pin) {
     for (uint8_t p : INPUT_ONLY_PINS) if (p == pin) return true;
@@ -60,23 +61,52 @@ void loadSettings() {
     apSsid = preferences.getString("apssid", WIFI_AP_SSID);
     staSsid = preferences.getString("ssid", WIFI_STA_SSID);
     staPassword = preferences.getString("wpass", WIFI_STA_PASS);
+    currentVolume = (uint8_t)constrain(preferences.getUChar("volume", 20), 0, 30);
+
     if (deviceName.length() == 0) deviceName = "DY1703A Player";
     if (apSsid.length() == 0) apSsid = WIFI_AP_SSID;
-    Serial.printf("Nastavenia: zariadenie='%s', AP SSID='%s', STA SSID='%s'\n", deviceName.c_str(), apSsid.c_str(), staSsid.c_str());
+
+    for (uint8_t i = 0; i < 8; i++) {
+        char key[8];
+        snprintf(key, sizeof(key), "trk%u", i + 1);
+        String defaultName = "Skladba " + String(i + 1);
+        trackNames[i] = preferences.getString(key, defaultName.c_str());
+        if (trackNames[i].length() == 0) trackNames[i] = defaultName;
+        if (trackNames[i].length() > 40) trackNames[i] = trackNames[i].substring(0, 40);
+    }
+
+    Serial.printf("Nastavenia: zariadenie='%s', AP SSID='%s', STA SSID='%s', hlasitost=%u\n",
+                  deviceName.c_str(), apSsid.c_str(), staSsid.c_str(), currentVolume);
 }
 
 void saveSettings(const String &newDeviceName, const String &newApSsid,
-                  const String &newStaSsid, const String &newStaPassword) {
+                  const String &newStaSsid, const String &newStaPassword,
+                  uint8_t newVolume, const String newTrackNames[8]) {
     deviceName = newDeviceName.length() ? newDeviceName : "DY1703A Player";
     apSsid = newApSsid.length() ? newApSsid : WIFI_AP_SSID;
     staSsid = newStaSsid;
     staPassword = newStaPassword;
+    currentVolume = constrain(newVolume, 0, 30);
+
     if (deviceName.length() > 32) deviceName = deviceName.substring(0, 32);
     if (apSsid.length() > 32) apSsid = apSsid.substring(0, 32);
+
     preferences.putString("device", deviceName);
     preferences.putString("apssid", apSsid);
     preferences.putString("ssid", staSsid);
     preferences.putString("wpass", staPassword);
+    preferences.putUChar("volume", currentVolume);
+
+    for (uint8_t i = 0; i < 8; i++) {
+        String name = newTrackNames[i];
+        name.trim();
+        if (name.length() == 0) name = "Skladba " + String(i + 1);
+        if (name.length() > 40) name = name.substring(0, 40);
+        trackNames[i] = name;
+        char key[8];
+        snprintf(key, sizeof(key), "trk%u", i + 1);
+        preferences.putString(key, trackNames[i]);
+    }
 }
 
 void setupWebServer();
@@ -173,12 +203,12 @@ h3{margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10
 button{font-size:19px;padding:16px 10px;border:0;border-radius:12px;background:#ddd;cursor:pointer}button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .playbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.playbar button{padding:14px 5px}.controls{display:flex;gap:9px;align-items:center}.controls button{flex:0 0 58px;padding:12px}.controls input{flex:1}
 .status{text-align:center;font-size:17px}.small{text-align:center;color:#666;font-size:14px;margin-top:7px}.battery{height:18px;background:#ddd;border-radius:10px;overflow:hidden}.bar{height:100%;width:0;background:#555}
-.settingsBtn{width:100%;font-size:17px;background:#eee;padding:12px;margin-top:4px}#settings{display:none}.field{margin:11px 0}.field label{display:block;font-size:14px;font-weight:bold;margin-bottom:5px}.field input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
-.passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:15px;padding:9px 11px}.save{width:100%;background:#ccc;margin-top:8px}.msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
+.settingsBtn{width:100%;font-size:17px;background:#eee;padding:12px;margin-top:4px}#settings{display:none}.submenu{width:100%;font-size:16px;background:#eee;padding:12px;margin-top:8px;text-align:left}#trackSettings{display:none}.field{margin:11px 0}.field label{display:block;font-size:14px;font-weight:bold;margin-bottom:5px}.field input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
+.passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:15px;padding:9px 11px}.save{width:100%;background:#ccc;margin-top:8px}.msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}.trackName{font-size:17px;padding:7px 4px;border-bottom:1px solid #eee}.trackName:last-child{border-bottom:0}.trackButtonGrid{margin-top:14px}
 </style></head><body>
 <h1 id="title"></h1>
 <div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
-<div class="card"><h3>Skladby</h3><div class="grid" id="tracks"></div></div>
+<div class="card"><h3>Skladby</h3><div id="trackNames"></div><div class="grid trackButtonGrid" id="tracks"></div></div>
 <div class="card"><h3>Ovládanie</h3><div class="playbar"><button onclick="cmd('/api/play')">▶ Play</button><button onclick="cmd('/api/pause')">⏸ Pauza</button><button onclick="cmd('/api/stop')">■ Stop</button></div></div>
 <div class="card"><h3>Hlasitosť</h3><div class="controls"><button onclick="volume(-1)">−</button><input id="vol" type="range" min="0" max="30" value="20" oninput="setVolume(this.value)"><button onclick="volume(1)">+</button></div><div class="small" id="volText">20</div></div>
 <div class="card"><h3>Batéria</h3><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
@@ -187,34 +217,51 @@ button{font-size:19px;padding:16px 10px;border:0;border-radius:12px;background:#
 <div class="field"><label>SSID zariadenia (AP)</label><input id="apssid" maxlength="32"></div>
 <div class="field"><label>Domáca Wi-Fi SSID</label><input id="ssid" maxlength="64"></div>
 <div class="field"><label>Domáca Wi-Fi heslo</label><div class="passwordRow"><input id="wpass" type="password" maxlength="64" autocomplete="new-password"><button class="showPass" type="button" onclick="togglePass()">👁 Zobraziť</button></div></div>
-<div class="small">Zmeny sa uložia až po kliknutí na tlačidlo Uložiť nastavenia. Po uložení sa ESP32 reštartuje.</div>
+<button class="submenu" type="button" onclick="toggleTrackSettings()">🎵 Názvy skladieb</button>
+<div id="trackSettings"><div class="small">Názvy sa uložia spolu s ostatnými nastaveniami.</div><div id="trackFields"></div></div>
+<div class="small">Zmeny sa uložia až po kliknutí na tlačidlo Uložiť nastavenia. Po uložení sa ESP32 reštartuje a stránka sa obnoví.</div>
 <button class="save" onclick="saveSettings()">💾 Uložiť nastavenia</button><div class="msg" id="msg"></div>
 </div></div>
 <script>
-const tracks=document.getElementById('tracks');for(let i=1;i<=8;i++){let b=document.createElement('button');b.textContent='Skladba '+i;b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b)}
+const tracks=document.getElementById('tracks');const trackNamesEl=document.getElementById('trackNames');const trackFields=document.getElementById('trackFields');
+for(let i=1;i<=8;i++){let n=document.createElement('div');n.className='trackName';n.id='name'+i;n.textContent='Skladba '+i;trackNamesEl.appendChild(n);let b=document.createElement('button');b.textContent=i;b.title='Prehrať skladbu '+i;b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b);let f=document.createElement('div');f.className='field';f.innerHTML='<label>Skladba '+i+'</label><input id="tn'+i+'" maxlength="40">';trackFields.appendChild(f)}
 async function cmd(u){try{await fetch(u);update()}catch(e){}}
 async function volume(d){let v=Number(document.getElementById('vol').value)+d;v=Math.max(0,Math.min(30,v));setVolume(v)}
 async function setVolume(v){document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v);update()}catch(e){}}
 function toggleSettings(){let e=document.getElementById('settings');e.style.display=e.style.display==='block'?'none':'block';if(e.style.display==='block')loadSettings()}
+function toggleTrackSettings(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
 function togglePass(){let e=document.getElementById('wpass'),b=document.querySelector('.showPass');if(e.type==='password'){e.type='text';b.textContent='🙈 Skryť'}else{e.type='password';b.textContent='👁 Zobraziť'}}
-async function loadSettings(){try{let r=await fetch('/api/settings',{cache:'no-store'}),s=await r.json();document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=''}catch(e){}}
-async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('ssid',document.getElementById('ssid').value);let pw=document.getElementById('wpass').value;if(pw!=='')p.append('wpass',pw);let b=document.querySelector('.save');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});document.getElementById('msg').textContent=await r.text()}catch(e){document.getElementById('msg').textContent='Chyba komunikácie s ESP32'} }
-async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();document.getElementById('title').textContent=s.device;document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');document.getElementById('vol').value=s.volume;document.getElementById('volText').textContent=s.volume;document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';for(let i=1;i<=8;i++)document.getElementById('t'+i).className=(s.playing&&s.track===i)?'active':''}catch(e){}}
+async function loadSettings(){try{let r=await fetch('/api/settings',{cache:'no-store'}),s=await r.json();document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('ssid').value=s.ssid;for(let i=1;i<=8;i++)document.getElementById('tn'+i).value=s.tracks[i-1]}catch(e){}}
+async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('ssid',document.getElementById('ssid').value);p.append('volume',document.getElementById('vol').value);for(let i=1;i<=8;i++)p.append('track'+i,document.getElementById('tn'+i).value);let pw=document.getElementById('wpass').value;if(pw!=='')p.append('wpass',pw);let b=document.querySelector('.save');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});let text=await r.text();document.getElementById('msg').textContent=text;if(r.ok)setTimeout(()=>{window.location.href='/';},3000)}catch(e){b.disabled=false;document.getElementById('msg').textContent='Chyba komunikácie s ESP32'}}
+async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();document.getElementById('title').textContent=s.device;document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');document.getElementById('vol').value=s.volume;document.getElementById('volText').textContent=s.volume;document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';for(let i=1;i<=8;i++)document.getElementById('t'+i).className=(s.playing&&s.track===i)?'active':'';if(s.names)for(let i=1;i<=8;i++)document.getElementById('name'+i).textContent=s.names[i-1]}catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
         request->send(200, "text/html; charset=utf-8", html);
     });
 
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String namesJson = "[";
+        for (uint8_t i = 0; i < 8; i++) {
+            if (i) namesJson += ",";
+            namesJson += "\"" + jsonEscape(trackNames[i]) + "\"";
+        }
+        namesJson += "]";
         String json = "{\"device\":\"" + jsonEscape(deviceName) + "\",\"playing\":" + String(currentPlaying ? "true" : "false") +
                       ",\"track\":" + String(currentTrack) + ",\"volume\":" + String(currentVolume) +
-                      ",\"battery\":" + String(batteryPct) + ",\"voltage\":" + String(batteryMv) + "}";
+                      ",\"battery\":" + String(batteryPct) + ",\"voltage\":" + String(batteryMv) + ",\"names\":" + namesJson + "}";
         request->send(200, "application/json", json);
     });
 
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String tracksJson = "[";
+        for (uint8_t i = 0; i < 8; i++) {
+            if (i) tracksJson += ",";
+            tracksJson += "\"" + jsonEscape(trackNames[i]) + "\"";
+        }
+        tracksJson += "]";
         String json = "{\"device\":\"" + jsonEscape(deviceName) + "\",\"apssid\":\"" + jsonEscape(apSsid) +
-                      "\",\"ssid\":\"" + jsonEscape(staSsid) + "\"}";
+                      "\",\"ssid\":\"" + jsonEscape(staSsid) + "\",\"volume\":" + String(currentVolume) +
+                      ",\"tracks\":" + tracksJson + "}";
         request->send(200, "application/json", json);
     });
 
@@ -224,17 +271,30 @@ update();setInterval(update,1000);
         String newStaSsid = request->hasParam("ssid", true) ? request->getParam("ssid", true)->value() : staSsid;
         String newPassword = staPassword;
         if (request->hasParam("wpass", true)) newPassword = request->getParam("wpass", true)->value();
+        int newVolume = request->hasParam("volume", true) ? request->getParam("volume", true)->value().toInt() : currentVolume;
         newDevice.trim(); newApSsid.trim(); newStaSsid.trim();
         if (newDevice.length() == 0) newDevice = "DY1703A Player";
         if (newApSsid.length() == 0) newApSsid = WIFI_AP_SSID;
         if (newApSsid.length() > 32) newApSsid = newApSsid.substring(0, 32);
         if (newDevice.length() > 32) newDevice = newDevice.substring(0, 32);
+        newVolume = constrain(newVolume, 0, 30);
 
-        saveSettings(newDevice, newApSsid, newStaSsid, newPassword);
+        String newTrackNames[8];
+        for (uint8_t i = 0; i < 8; i++) {
+            char param[8];
+            snprintf(param, sizeof(param), "track%u", i + 1);
+            newTrackNames[i] = request->hasParam(param, true) ? request->getParam(param, true)->value() : trackNames[i];
+            newTrackNames[i].trim();
+            if (newTrackNames[i].length() == 0) newTrackNames[i] = "Skladba " + String(i + 1);
+            if (newTrackNames[i].length() > 40) newTrackNames[i] = newTrackNames[i].substring(0, 40);
+        }
+
+        saveSettings(newDevice, newApSsid, newStaSsid, newPassword, (uint8_t)newVolume, newTrackNames);
+        player.setVolume(currentVolume);
         lastActivityMs = millis();
         wifiRestartPending = true;
-        wifiRestartAtMs = millis() + 1000UL;
-        request->send(200, "text/plain", "Nastavenia uložené. ESP32 sa reštartuje...");
+        wifiRestartAtMs = millis() + 2500UL;
+        request->send(200, "text/plain", "Nastavenia uložené. ESP32 sa reštartuje a stránka sa obnoví...");
     });
 
     server.on("/api/play", HTTP_GET, [](AsyncWebServerRequest *request) {
