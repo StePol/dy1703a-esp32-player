@@ -39,6 +39,11 @@ bool wifiIsSta = false;
 unsigned long wifiConnectDeadlineMs = 0;
 unsigned long wifiDisconnectGraceDeadlineMs = 0;
 
+// WiFi zmenu vyvolaná z webového formulára sa vykoná až v loop(),
+// nikdy priamo v AsyncTCP callbacku. Tým sa zabráni watchdog resetu.
+bool wifiRestartPending = false;
+unsigned long wifiRestartAtMs = 0;
+
 String deviceName;
 String apSsid;
 String staSsid;
@@ -156,12 +161,10 @@ bool startSTA() {
 void startWiFi() {
     if (wifiActive) return;
 
-    // Ak máme uložené SSID, skús najprv domácu sieť.
     if (staSsid.length() > 0) {
         if (startSTA()) return;
     }
 
-    // Bez uloženého SSID alebo pri neúspešnom STA pripojení použijeme AP.
     startAP();
 }
 
@@ -236,7 +239,7 @@ async function volume(d){let v=Number(document.getElementById('vol').value)+d;v=
 async function setVolume(v){document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v);update()}catch(e){}}
 function toggleSettings(){let e=document.getElementById('settings');e.style.display=e.style.display==='block'?'none':'block';if(e.style.display==='block')loadSettings()}
 async function loadSettings(){try{let r=await fetch('/api/settings',{cache:'no-store'}),s=await r.json();document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=''}catch(e){}}
-async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('ssid',document.getElementById('ssid').value);let pw=document.getElementById('wpass').value;if(pw!=='')p.append('wpass',pw);try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});let t=await r.text();document.getElementById('msg').textContent=t;setTimeout(()=>location.reload(),1800)}catch(e){document.getElementById('msg').textContent='Chyba pri ukladaní'}}
+async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('ssid',document.getElementById('ssid').value);let pw=document.getElementById('wpass').value;if(pw!=='')p.append('wpass',pw);try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});let t=await r.text();document.getElementById('msg').textContent=t}catch(e){document.getElementById('msg').textContent='Chyba pri ukladaní'}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();document.getElementById('title').textContent=s.device;document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');document.getElementById('vol').value=s.volume;document.getElementById('volText').textContent=s.volume;document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';for(let i=1;i<=8;i++)document.getElementById('t'+i).className=(s.playing&&s.track===i)?'active':''}catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
@@ -273,20 +276,19 @@ update();setInterval(update,1000);
 
         if (newDevice.length() == 0) newDevice = "DY1703A Player";
         if (newApSsid.length() == 0) newApSsid = WIFI_AP_SSID;
-
-        // ESP32 SoftAP s heslom vyžaduje SSID a heslo s rozumnou dĺžkou.
         if (newApSsid.length() > 32) newApSsid = newApSsid.substring(0, 32);
         if (newDevice.length() > 32) newDevice = newDevice.substring(0, 32);
 
         saveWiFiSettings(newDevice, newApSsid, newStaSsid, newPassword);
         lastActivityMs = millis();
-        request->send(200, "text/plain", "Nastavenia uložené. ESP32 reštartuje WiFi...");
 
-        // Po odoslaní odpovede znovu inicializujeme WiFi podľa nových údajov.
-        // Krátky delay dá HTTP odpovedi čas odísť klientovi.
-        delay(250);
-        stopWiFi();
-        startWiFi();
+        // NIKDY tu nerobíme stopWiFi()/startWiFi().
+        // Tento handler beží v async_tcp taske a blokujúce WiFi operácie
+        // by mohli zablokovať async_tcp a vyvolať task watchdog reset.
+        wifiRestartPending = true;
+        wifiRestartAtMs = millis() + 1000UL;
+
+        request->send(200, "text/plain", "Nastavenia uložené. ESP32 reštartuje WiFi...");
     });
 
     server.on("/api/play", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -333,10 +335,21 @@ update();setInterval(update,1000);
     webServerStarted = true;
 }
 
+void handlePendingWiFiRestart() {
+    if (!wifiRestartPending) return;
+    if ((long)(millis() - wifiRestartAtMs) < 0) return;
+
+    wifiRestartPending = false;
+
+    Serial.println(F("Používateľ uložil WiFi nastavenia -> reštartujem ESP32"));
+    Serial.flush();
+    delay(50);
+    ESP.restart();
+}
+
 void handleWiFi() {
     if (!wifiActive) return;
 
-    // STA režim musí zostať aktívny, aby bola stránka dostupná v lokálnej sieti.
     if (wifiIsSta) {
         if (WiFi.status() != WL_CONNECTED) {
             Serial.println(F("WiFi STA bolo odpojené -> skúšam znovu AP"));
@@ -473,6 +486,7 @@ void loop() {
         Serial.printf("Batéria: %lu mV (~%u%%)\n", batteryMv, batteryPct);
     }
 
+    handlePendingWiFiRestart();
     handleWiFi();
     maybeEnterLightSleep();
 }
