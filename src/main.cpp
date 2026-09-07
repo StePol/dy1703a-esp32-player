@@ -56,6 +56,8 @@ void setupButtons() {
     }
 }
 
+void setupWebServer();
+
 void startWiFi() {
     if (wifiActive) return;
 
@@ -73,6 +75,11 @@ void startWiFi() {
     wifiActive = true;
     wifiConnectDeadlineMs = millis() + WIFI_CONNECT_TIMEOUT_MS;
     wifiDisconnectGraceDeadlineMs = 0;
+
+    // DÔLEŽITÉ: AsyncWebServer::begin() sa musí vykonať až po inicializácii
+    // TCP/IP/WiFi. Predtým sa volal pri štarte ešte s WIFI_OFF, čo spôsobovalo
+    // "assert failed: tcpip_api_call ... (Invalid mbox)".
+    setupWebServer();
 
     Serial.printf("WiFi AP: %s, IP: %s, pripojenie do %lu s\n",
                   WIFI_AP_SSID,
@@ -280,7 +287,9 @@ void setup() {
     battery.begin();
     motor.begin();
 
-    setupWebServer();
+    // Webserver NESMIE byť spustený pred inicializáciou WiFi/TCP-IP.
+    // Najprv ponecháme WiFi vypnuté kvôli spotrebe a server spustíme až
+    // pri prvom stlačení tlačidla v startWiFi().
     WiFi.mode(WIFI_OFF);
 
     lastActivityMs = millis();
