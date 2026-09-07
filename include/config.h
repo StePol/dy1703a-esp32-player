@@ -24,41 +24,31 @@ constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
 #define BTN_DEBOUNCE_MS 40
 
 // --- WiFi / web rozhranie ---
-// Predvolené údaje. Hodnoty nastavené cez web sa ukladajú do NVS ESP32
-// a po reštarte majú prednosť pred týmito predvolenými hodnotami.
 #define WIFI_AP_SSID    "DY1703A-Player"
 #define WIFI_AP_PASS    "password"
 #define WEB_SERVER_PORT 80
-
-// Ak je tu SSID vyplnené, použije sa ako počiatočné STA nastavenie,
-// pokiaľ ešte neexistuje uložené nastavenie v NVS.
 #define WIFI_STA_SSID   ""
 #define WIFI_STA_PASS   ""
 #define WIFI_STA_TIMEOUT_MS 15000UL
-
-// V AP režime má používateľ tento čas na prvé pripojenie mobilu.
-#define WIFI_CONNECT_TIMEOUT_MS 90000UL   // 90 s na prvé pripojenie
-
-// Po odpojení posledného WiFi klienta zostane AP ešte chvíľu aktívny,
-// aby sa používateľ mohol znova pripojiť bez okamžitého uspania.
-#define WIFI_DISCONNECT_GRACE_MS 60000UL  // 60 s po odpojení
+#define WIFI_CONNECT_TIMEOUT_MS 90000UL
+#define WIFI_DISCONNECT_GRACE_MS 60000UL
 
 // --- BLE ---
 #define BLE_DEVICE_NAME "DY1703A-Player"
 
-// --- Batéria (spínaný odporový delič napätia) ---
-#define BATTERY_ADC_PIN     34      // ADC1, input-only pin
-#define BATTERY_ENABLE_PIN  23      // ovláda Q2 (BS170) -> Q1 (BSS84) spínač
-#define BATTERY_R_TOP       100000.0f  // 100kΩ
-#define BATTERY_R_BOTTOM    100000.0f  // 100kΩ
+// --- Batéria ---
+#define BATTERY_ADC_PIN     34
+#define BATTERY_ENABLE_PIN  23
+#define BATTERY_R_TOP       100000.0f
+#define BATTERY_R_BOTTOM    100000.0f
 #define BATTERY_READ_INTERVAL_MS 10000
 
-// --- Vibračný motorček (cez NPN tranzistor) ---
+// --- Vibračný motorček ---
+// Motorček je pripojený cez pôvodné dvojtranzistorové zapojenie priamo na ESP32.
+// GPIO4 ovláda tranzistorový stupeň. LOG1 motor zapína.
 #define MOTOR_PIN 4
-#define MOTOR_POLL_INTERVAL_MS 300
+#define MOTOR_ACTIVE_LEVEL HIGH
 
 // --- Light sleep pri nečinnosti ---
-// WiFi musí byť vypnutá, aby sa ESP32 mohlo spoľahlivo uspať.
-// Ak je WiFi aktívne, zariadenie zostáva hore.
-#define INACTIVITY_TIMEOUT_MS         30000UL  // 30s bez tlačidla/hrania -> spánok
-#define LIGHT_SLEEP_CHECK_INTERVAL_MS 5000UL  // periodické budenie ako poistka
+#define INACTIVITY_TIMEOUT_MS         30000UL
+#define LIGHT_SLEEP_CHECK_INTERVAL_MS 5000UL
