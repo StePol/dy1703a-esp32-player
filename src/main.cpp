@@ -385,7 +385,7 @@ for(let i=1;i<=8;i++){
  b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b);
 }
 async function cmd(u){try{await fetch(u);update()}catch(e){}}
-function volume(d){let v=Number(document.getElementById('vol').value)+d;v=Math.max(0,Math.min(30,v));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v}
+async function volume(d){let v=Number(document.getElementById('vol').value)+d;v=Math.max(0,Math.min(30,v));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}}
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
 document.getElementById('title').textContent=s.device;
@@ -636,6 +636,16 @@ load();
         player.pause();currentPlaying=false;setMotor(false);lastActivityMs=millis();
         request->send(200,"text/plain","OK");
     });
+    server.on("/api/volume",HTTP_GET,[](AsyncWebServerRequest *request){
+        if(request->hasParam("value")){
+            int value=request->getParam("value")->value().toInt();
+            currentVolume=constrain(value,0,30);
+            player.setVolume(currentVolume);
+            lastActivityMs=millis();
+        }
+        request->send(200,"text/plain",String(currentVolume));
+    });
+
     server.on("/api/volume/set",HTTP_GET,[](AsyncWebServerRequest *request){
         if(request->hasParam("value")){
             int value=request->getParam("value")->value().toInt();
