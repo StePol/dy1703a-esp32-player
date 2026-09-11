@@ -755,7 +755,7 @@ void loop(){
         lastBatteryRead=now;
         batteryMv=battery.readVoltageMv();
         batteryPct=battery.readPercent();
-        Serial.printf("Batéria: %lu mV (~%u%%)\n",batteryMv,batteryPct);
+        String ip = wifiIsSta ? WiFi.localIP().toString() : (wifiActive ? WiFi.softAPIP().toString() : String("OFF"));\n        Serial.printf("Batéria: %lu mV (~%u%%) | IP: %s\n",batteryMv,batteryPct,ip.c_str());
     }
 
     handlePendingWiFiRestart();
