@@ -470,19 +470,23 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="field"><label>Domáca Wi-Fi SSID</label><input id="ssid" maxlength="64"></div>
 <div class="field"><label>Domáca Wi-Fi heslo</label><div class="passwordRow"><input id="wpass" type="password" maxlength="64"><button class="showPass" type="button" onclick="toggle('wpass',this)">👁</button></div></div>
 </div>
-<div class="card"><h3>Názvy skladieb a vibrácia</h3>
+<div class="card"><h3>Zariadenie a WIFI</h3>
 <div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
-<button class="submenu" type="button" onclick="toggleTracks()">🎵 Zobraziť názvy skladieb a vibráciu</button>
+</div>
+<div class="card"><h3>Názvy skladieb a vibrácia</h3>
+<button class="submenu" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
 <div id="trackSettings"><div id="trackFields"></div></div>
 </div>
-<div class="card"><h3>Konfigurácia</h3>
-<button class="action" onclick="saveSettings()">💾 Uložiť nastavenia a reštartovať</button>
-<button class="action warn" onclick="defaults()">↺ Obnoviť výrobné nastavenie</button>
-<a href="/api/backup">⬇ Uložiť celú konfiguráciu do súboru</a>
-<div>Obnovenie celej konfigurácie:</div><input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
-<button class="action" onclick="restore()">⬆ Obnoviť konfiguráciu zo súboru</button>
+<div class="card"><h3>Údržba</h3>
+<a href="/api/backup">⬇ Zápis konfigurácie</a>
+<div>Obnovenie konfigurácie:</div><input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
+<button class="action" onclick="restore()">⬆ Obnovenie konfigurácie</button>
+<button class="action warn" onclick="defaults()">↺ Obnovenie výrobných nastavení</button>
 <div class="msg" id="msg"></div></div>
-<div class="card"><button class="action" onclick="location.href='/'">↩ Späť bez uloženia</button></div>
+<div class="card"><h3>Príkazy</h3>
+<button class="action" onclick="saveSettings()">💾 Uložiť a reštart</button>
+<button class="action" onclick="location.href='/'">↩ Návrat bez uloženia</button>
+</div>
 <script>
 const tf=document.getElementById('trackFields');
 for(let i=1;i<=8;i++){
