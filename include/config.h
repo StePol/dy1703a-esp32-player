@@ -7,7 +7,15 @@
 #define DY_BAUD_RATE    9600
 
 // --- Tlačidlá pre priamu voľbu skladby (aktívne LOW) ---
-constexpr uint8_t TRACK_BUTTON_PINS[8] = {13, 14, 27, 26, 25, 33, 32, 35};
+// KEY1 -> skladba 1 -> GPIO25
+// KEY2 -> skladba 2 -> GPIO33
+// KEY3 -> skladba 3 -> GPIO32
+// KEY4 -> skladba 4 -> GPIO35
+// KEY5 -> skladba 5 -> GPIO13
+// KEY6 -> skladba 6 -> GPIO14
+// KEY7 -> skladba 7 -> GPIO27
+// KEY8 -> skladba 8 -> GPIO26
+constexpr uint8_t TRACK_BUTTON_PINS[8] = {25, 33, 32, 35, 13, 14, 27, 26};
 constexpr uint8_t INPUT_ONLY_PIN_COUNT = 1;
 constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
 #define BTN_DEBOUNCE_MS 40
