@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <Preferences.h>
+#include <LittleFS.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <esp_sleep.h>
@@ -41,6 +42,8 @@ String apPassword;
 String staSsid;
 String staPassword;
 String settingsPassword;
+String logoUrl;
+bool logoExists = false;
 String trackNames[8];
 bool vibrationEnabled[8];
 
@@ -52,6 +55,8 @@ const char *DEFAULT_DEVICE = "DY1703A Player";
 const char *DEFAULT_AP_SSID = WIFI_AP_SSID;
 const char *DEFAULT_AP_PASSWORD = WIFI_AP_PASS;
 const char *DEFAULT_SETTINGS_PASSWORD = "12345";
+const char *LOGO_PATH = "/logo";
+const size_t MAX_LOGO_SIZE = 300 * 1024;
 
 bool isInputOnlyPin(uint8_t pin) {
     for (uint8_t p : INPUT_ONLY_PINS) if (p == pin) return true;
@@ -84,6 +89,8 @@ void loadSettings() {
     staPassword = preferences.getString("wpass", WIFI_STA_PASS);
     settingsPassword = preferences.getString("setpass", DEFAULT_SETTINGS_PASSWORD);
     currentVolume = (uint8_t)constrain(preferences.getUChar("volume", 20), 0, 30);
+    logoUrl = preferences.getString("logourl", "");
+    logoExists = LittleFS.exists(LOGO_PATH);
 
     if (deviceName.length() == 0) deviceName = DEFAULT_DEVICE;
     if (apSsid.length() == 0) apSsid = DEFAULT_AP_SSID;
@@ -132,6 +139,7 @@ void saveSettings(const String &newDeviceName, const String &newApSsid,
     preferences.putString("wpass", staPassword);
     preferences.putString("setpass", settingsPassword);
     preferences.putUChar("volume", currentVolume);
+    preferences.putString("logourl", logoUrl);
 
     for (uint8_t i = 0; i < 8; i++) {
         String name = newTrackNames[i];
@@ -389,6 +397,7 @@ async function volume(d){let v=Number(document.getElementById('vol').value)+d;v=
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
 document.getElementById('title').textContent=s.device;
+if(s.logo){document.getElementById('logoWrap').style.display='block';document.getElementById('logo').src='/logo?'+Date.now();document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
 document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');
 document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
@@ -463,7 +472,7 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
-<div class="card"><h3>Zariadenie a Wi-Fi</h3>
+<div class="card"><h3>Logo</h3>\n<div class="field"><label>Vlastné logo (PNG/JPG, max. 300 kB)</label><input class="file" id="logoFile" type="file" accept="image/png,image/jpeg"></div>\n<button class="action" type="button" onclick="uploadLogo()">⬆ Nahrať logo</button>\n<button class="action warn" type="button" onclick="deleteLogo()">🗑 Odstrániť logo</button>\n<div class="field"><label>Externý odkaz po kliknutí na logo</label><input id="logourl" type="url" maxlength="200" placeholder="https://moja-stranka.sk"></div>\n<div class="small" id="logoStatus"></div></div>\n<div class="card"><h3>Zariadenie a Wi-Fi</h3>
 <div class="field"><label>Názov zariadenia</label><input id="device" maxlength="32"></div>
 <div class="field"><label>SSID zariadenia (AP)</label><input id="apssid" maxlength="32"></div>
 <div class="field"><label>Heslo AP (min. 8 znakov)</label><div class="passwordRow"><input id="appass" type="password" maxlength="63"><button class="showPass" type="button" onclick="toggle('appass',this)">👁</button></div></div>
@@ -497,9 +506,9 @@ for(let i=1;i<=8;i++){
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
 function toggleTracks(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
-document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;
+document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
 for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1]}}
-async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);
+async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}\nasync function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}\nasync function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);p.append('logourl',document.getElementById('logourl').value);
 for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1')}
 let b=document.querySelector('.action');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';
 try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}catch(e){b.disabled=false;document.getElementById('msg').textContent='Chyba komunikácie'}}
@@ -508,6 +517,18 @@ async function restore(){let f=document.getElementById('restore').files[0];if(!f
 load();
 </script></body></html>)HTML";
         request->send(200, "text/html; charset=utf-8", html);
+    });
+
+    server.on("/logo", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (!logoExists || !LittleFS.exists(LOGO_PATH)) { request->send(404, "text/plain", "Logo nenahraté"); return; }
+        String type = "image/jpeg";
+        File f = LittleFS.open(LOGO_PATH, "r");
+        if (!f) { request->send(404, "text/plain", "Logo nenahraté"); return; }
+        if (f.size() > 0) {
+            uint8_t h[8]={0}; size_t n=f.read(h,8); f.close();
+            if(n>=8 && h[0]==0x89 && h[1]==0x50 && h[2]==0x4E && h[3]==0x47) type="image/png";
+        } else f.close();
+        request->send(LittleFS, LOGO_PATH, type);
     });
 
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -524,10 +545,45 @@ load();
                     "\",\"appass\":\"" + jsonEscape(apPassword) +
                     "\",\"ssid\":\"" + jsonEscape(staSsid) +
                     "\",\"wpass\":\"" + jsonEscape(staPassword) +
-                    "\",\"setpass\":\"" + jsonEscape(settingsPassword) +
+                    "\",\"setpass\":\"" + jsonEscape(settingsPassword) + "\",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\",\"logo\":" + String(logoExists?"true":"false") +
                     "\",\"tracks\":" + tracksJson +
                     ",\"vibration\":" + vibJson + "}";
         request->send(200, "application/json", json);
+    });
+
+    server.on("/api/logo", HTTP_DELETE, [](AsyncWebServerRequest *request) {
+        if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
+        LittleFS.remove(LOGO_PATH);
+        logoExists=false;
+        request->send(200, "text/plain", "Logo odstránené.");
+    });
+
+    server.on("/api/logo", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
+        if (!logoExists) request->send(200, "text/plain", "Logo nahraté.");
+    }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+        static File uploadFile;
+        static bool uploadOk;
+        if(index==0){
+            uploadOk=true;
+            String lower=filename; lower.toLowerCase();
+            if(!(lower.endsWith(".png")||lower.endsWith(".jpg")||lower.endsWith(".jpeg"))){uploadOk=false;return;}
+            LittleFS.remove("/logo.tmp");
+            uploadFile=LittleFS.open("/logo.tmp","w");
+            if(!uploadFile)uploadOk=false;
+        }
+        if(uploadOk && uploadFile){
+            if(index+len>MAX_LOGO_SIZE){uploadOk=false;uploadFile.close();LittleFS.remove("/logo.tmp");return;}
+            if(uploadFile.write(data,len)!=len){uploadOk=false;uploadFile.close();LittleFS.remove("/logo.tmp");return;}
+        }
+        if(final){
+            if(uploadFile)uploadFile.close();
+            if(uploadOk){
+                LittleFS.remove(LOGO_PATH);
+                LittleFS.rename("/logo.tmp",LOGO_PATH);
+                logoExists=true;
+            } else LittleFS.remove("/logo.tmp");
+        }
     });
 
     server.on("/api/settings", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -539,8 +595,10 @@ load();
         String newStaSsid=request->hasParam("ssid",true)?request->getParam("ssid",true)->value():staSsid;
         String newStaPassword=request->hasParam("wpass",true)?request->getParam("wpass",true)->value():staPassword;
         String newSettingsPassword=request->hasParam("setpass",true)?request->getParam("setpass",true)->value():settingsPassword;
+        String newLogoUrl=request->hasParam("logourl",true)?request->getParam("logourl",true)->value():logoUrl;
 
-        newDevice.trim();newApSsid.trim();newApPassword.trim();newStaSsid.trim();newSettingsPassword.trim();
+        newDevice.trim();newApSsid.trim();newApPassword.trim();newStaSsid.trim();newSettingsPassword.trim();newLogoUrl.trim();
+        if(newLogoUrl.length()>0 && !(newLogoUrl.startsWith("http://")||newLogoUrl.startsWith("https://"))){request->send(400,"text/plain","Odkaz loga musí začínať http:// alebo https://.");return;}\n        if(newLogoUrl.length()>200)newLogoUrl=newLogoUrl.substring(0,200);\n        logoUrl=newLogoUrl;
         if(newDevice.length()==0)newDevice=DEFAULT_DEVICE;
         if(newApSsid.length()==0)newApSsid=DEFAULT_AP_SSID;
         if(newApPassword.length()<8||newApPassword.length()>63){request->send(400,"text/plain","Heslo AP musí mať 8 až 63 znakov.");return;}
@@ -745,6 +803,7 @@ void setup(){
     player.begin(DY_BAUD_RATE,DY_RX_PIN,DY_TX_PIN);
     player.setVolume(currentVolume);
     battery.begin();
+    if (!LittleFS.begin(true)) Serial.println(F("CHYBA: LittleFS sa nepodarilo pripojiť"));
     settingsSessionToken="";
     lastActivityMs=millis();
     Serial.println(F("DY1703A ESP32 Player – ready"));
