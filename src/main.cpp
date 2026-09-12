@@ -814,6 +814,14 @@ void setup(){
     delay(300);
     setupButtons();
     if (!LittleFS.begin(true)) Serial.println(F("CHYBA: LittleFS sa nepodarilo pripojiť"));
+
+  Serial.println("[LittleFS] Diagnostika:");
+  Serial.printf("[LittleFS] total=%u bytes, used=%u bytes, free=%u bytes\n", (unsigned)LittleFS.totalBytes(), (unsigned)LittleFS.usedBytes(), (unsigned)(LittleFS.totalBytes()-LittleFS.usedBytes()));
+  Serial.printf("[LittleFS] /logo exists=%s, size=%u bytes\n", LittleFS.exists("/logo") ? "ANO" : "NIE", LittleFS.exists("/logo") ? (unsigned)LittleFS.open("/logo","r").size() : 0u);
+  if (LittleFS.exists("/littlefs_test.tmp")) LittleFS.remove("/littlefs_test.tmp");
+  File diagFile=LittleFS.open("/littlefs_test.tmp", FILE_WRITE);
+  if (diagFile) { diagFile.print("test"); diagFile.close(); Serial.println("[LittleFS] testovací zápis: OK"); LittleFS.remove("/littlefs_test.tmp"); }
+  else Serial.println("[LittleFS] testovací zápis: ZLYHAL");
     loadSettings();
     player.begin(DY_BAUD_RATE,DY_RX_PIN,DY_TX_PIN);
     player.setVolume(currentVolume);
