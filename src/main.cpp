@@ -52,6 +52,7 @@ String restoreBuffer;
 bool restoreUploadOk = false;
 
 const char *DEFAULT_DEVICE = "DY1703A Player";
+const char *CODE_VERSION = "1.0.0";
 const char *DEFAULT_AP_SSID = WIFI_AP_SSID;
 const char *DEFAULT_AP_PASSWORD = WIFI_AP_PASS;
 const char *DEFAULT_SETTINGS_PASSWORD = "12345";
@@ -359,7 +360,7 @@ void setupWebServer() {
 <title>)HTML" + htmlEscape(deviceName) + R"HTML(</title>
 <style>
 body{font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:12px;background:#f4f4f4;color:#222}
-h1{text-align:center;font-size:24px;margin:8px 0 14px}.card{background:#fff;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 8px #0001}
+h1{text-align:center;font-size:24px;margin:8px 0 14px}#version{font-size:50%;font-weight:normal;color:#777;margin-left:8px;white-space:nowrap}.card{background:#fff;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 8px #0001}
 h3{margin:0 0 12px}.trackList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 button{font-size:19px;padding:16px 10px;border:0;border-radius:12px;background:#ddd;cursor:pointer}
 button:active{transform:scale(.98)}.active{outline:4px solid #555}
@@ -374,7 +375,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
 <div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
-<h1 id="title"></h1>
+<h1><span id="title"></span><span id="version"></span></h1>
 <div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
 <div class="card"><h3>Skladby</h3><div class="trackList" id="tracks"></div></div>
 <div class="card"><h3>Ovládanie</h3><div class="playbar">
@@ -397,7 +398,7 @@ async function cmd(u){try{await fetch(u);update()}catch(e){}}
 async function volumeSet(v){v=Math.max(0,Math.min(30,Number(v)));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}} async function volume(d){let v=Number(document.getElementById('vol').value)+d;await volumeSet(v)}
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
-document.getElementById('title').textContent=s.device;
+document.getElementById('title').textContent=s.device;document.getElementById('version').textContent='v'+s.version;
 if(s.logo){document.getElementById('logoWrap').style.display='block';document.getElementById('logo').src='/logo?'+Date.now();document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
 document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');
 document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');
@@ -699,7 +700,7 @@ load();
         }
         namesJson+="]";vibJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
-                    "\",\"playing\":" + String(currentPlaying?"true":"false") +
+                    "\",\"version\":\"" + jsonEscape(CODE_VERSION) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
                     ",\"track\":" + String(currentTrack) +
                     ",\"volume\":" + String(currentVolume) +
                     ",\"battery\":" + String(batteryPct) +
