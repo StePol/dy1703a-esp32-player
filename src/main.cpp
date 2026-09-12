@@ -24,6 +24,7 @@ TrackButton buttons[8];
 uint8_t currentVolume = 20;
 uint8_t currentTrack = 0;
 bool currentPlaying = false;
+bool loopPlaybackArmed = false;
 uint32_t batteryMv = 0;
 uint8_t batteryPct = 0;
 unsigned long lastActivityMs = 0;
@@ -710,13 +711,14 @@ load();
     });
 
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String namesJson="[",vibJson="[";
+        String namesJson="[",vibJson="[",loopJson="[";
         for(uint8_t i=0;i<8;i++){
-            if(i){namesJson+=",";vibJson+=",";}
+            if(i){namesJson+=",";vibJson+=",";loopJson+=",";}
             namesJson+="\"" + jsonEscape(trackNames[i]) + "\"";
             vibJson+=vibrationEnabled[i]?"true":"false";
+            loopJson+=loopEnabled[i]?"true":"false";
         }
-        namesJson+="]";vibJson+="]";
+        namesJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
                     "\",\"version\":\"" + jsonEscape(CODE_VERSION) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
                     ",\"track\":" + String(currentTrack) +
@@ -726,24 +728,24 @@ load();
                     ",\"logo\":" + String(logoExists ? "true" : "false") +
                     ",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\"" +
                     ",\"names\":" + namesJson +
-                    ",\"vibration\":" + vibJson + "}";
+                    ",\"vibration\":" + vibJson + ",\"loop\":" + loopJson + "}";
         request->send(200,"application/json",json);
     });
 
     server.on("/api/play",HTTP_GET,[](AsyncWebServerRequest *request){
         if(request->hasParam("track")){
             int track=request->getParam("track")->value().toInt();
-            if(track>=1&&track<=8){currentTrack=track;player.playTrack(currentTrack);}
-        } else player.play();
+            if(track>=1&&track<=8){currentTrack=track;loopPlaybackArmed=loopEnabled[currentTrack-1];player.playTrack(currentTrack);}
+        } else { loopPlaybackArmed=(currentTrack>=1&&currentTrack<=8&&loopEnabled[currentTrack-1]); player.play(); }
         lastActivityMs=millis();
         request->send(200,"text/plain","OK");
     });
     server.on("/api/stop",HTTP_GET,[](AsyncWebServerRequest *request){
-        player.stop();currentPlaying=false;setMotor(false);lastActivityMs=millis();
+        player.stop();currentPlaying=false;loopPlaybackArmed=false;setMotor(false);lastActivityMs=millis();
         request->send(200,"text/plain","OK");
     });
     server.on("/api/pause",HTTP_GET,[](AsyncWebServerRequest *request){
-        player.pause();currentPlaying=false;setMotor(false);lastActivityMs=millis();
+        player.pause();currentPlaying=false;loopPlaybackArmed=false;setMotor(false);lastActivityMs=millis();
         request->send(200,"text/plain","OK");
     });
     server.on("/api/volume",HTTP_GET,[](AsyncWebServerRequest *request){
@@ -810,6 +812,7 @@ bool handleButtons(){
             b.lastChangeMs=now;b.lastState=state;
             if(state==LOW){
                 currentTrack=b.trackNumber;
+                loopPlaybackArmed = loopEnabled[currentTrack-1];
                 player.playTrack(b.trackNumber);
                 startWiFi();
                 pressed=true;
@@ -897,11 +900,12 @@ void loop(){
 
     if(now-lastMotorPoll>=MOTOR_POLL_INTERVAL_MS){
         lastMotorPoll=now;
-        currentPlaying=player.isPlaying();
-        if(wasPlaying && !currentPlaying && currentTrack>=1 && currentTrack<=8 && loopEnabled[currentTrack-1]){
+        uint8_t playState=player.playState();
+        if(playState!=0xFF) currentPlaying=(playState==0x01);
+        if(wasPlaying && !currentPlaying && loopPlaybackArmed && currentTrack>=1 && currentTrack<=8 && loopEnabled[currentTrack-1]){
             player.playTrack(currentTrack);
             currentPlaying=true;
-            Serial.printf("[LOOP] opakujem skladbu %u\\n", currentTrack);
+            Serial.printf("[LOOP] koniec skladby -> opakujem skladbu %u\n", currentTrack);
         }
         wasPlaying=currentPlaying;
         setMotor(currentPlaying&&currentTrack>=1&&currentTrack<=8&&vibrationEnabled[currentTrack-1]);
