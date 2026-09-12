@@ -485,7 +485,7 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 .submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px}
 #trackSettings{display:none}.trackFieldRow{display:flex;align-items:center;gap:8px;margin:8px 0}.trackName{flex:1;min-width:0}
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}
-.action{width:100%;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
+.action{width:100%;box-sizing:border-box;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
 .warn{background:#ddd}.msg{text-align:center;min-height:22px;margin-top:10px;font-size:14px}
 a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
 </style></head><body>
