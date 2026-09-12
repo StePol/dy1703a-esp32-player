@@ -577,7 +577,7 @@ load();
             uploadOk=true;
             String lower=filename; lower.toLowerCase();
             if(!(lower.endsWith(".png")||lower.endsWith(".jpg")||lower.endsWith(".jpeg"))){uploadOk=false;return;}
-            LittleFS.remove("/logo.tmp");
+            if(LittleFS.exists("/logo.tmp")) LittleFS.remove("/logo.tmp");
             uploadFile=LittleFS.open("/logo.tmp","w");
             if(!uploadFile)uploadOk=false;
         }
@@ -588,10 +588,13 @@ load();
         if(final){
             if(uploadFile)uploadFile.close();
             if(uploadOk){
-                LittleFS.remove(LOGO_PATH);
-                LittleFS.rename("/logo.tmp",LOGO_PATH);
-                logoExists=true;
-            } else LittleFS.remove("/logo.tmp");
+                if(LittleFS.exists(LOGO_PATH)) LittleFS.remove(LOGO_PATH);
+                bool renamed=LittleFS.rename("/logo.tmp",LOGO_PATH);
+                logoExists=renamed && LittleFS.exists(LOGO_PATH);
+                if(!logoExists && LittleFS.exists("/logo.tmp")) LittleFS.remove("/logo.tmp");
+            } else if(LittleFS.exists("/logo.tmp")) {
+                LittleFS.remove("/logo.tmp");
+            }
         }
     });
 
