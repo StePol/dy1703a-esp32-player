@@ -67,6 +67,68 @@ bool isInputOnlyPin(uint8_t pin) {
     return false;
 }
 
+String serialCommandBuffer;
+
+void processSerialCommand(String line) {
+    line.trim();
+    if (line.length() == 0) return;
+
+    if (line.startsWith("CMD:WIFI_SSID=")) {
+        String value = line.substring(14);
+        value.trim();
+        if (value.length() > 32) value = value.substring(0, 32);
+        preferences.putString("ssid", value);
+        staSsid = value;
+        Serial.println("OK WIFI_SSID");
+        return;
+    }
+
+    if (line.startsWith("CMD:WIFI_PASSWORD=")) {
+        String value = line.substring(18);
+        value.trim();
+        if (value.length() < 8 || value.length() > 63) {
+            Serial.println("ERROR WIFI_PASSWORD length");
+            return;
+        }
+        preferences.putString("wpass", value);
+        staPassword = value;
+        Serial.println("OK WIFI_PASSWORD");
+        return;
+    }
+
+    if (line == "CMD:RESTART") {
+        Serial.println("OK RESTART");
+        delay(100);
+        ESP.restart();
+        return;
+    }
+
+    if (line == "CMD:GET_WIFI") {
+        Serial.printf("WIFI_SSID=%s\n", staSsid.c_str());
+        Serial.println("WIFI_PASSWORD=<hidden>");
+        return;
+    }
+
+    Serial.println("ERROR UNKNOWN_COMMAND");
+}
+
+void pollSerialCommands() {
+    while (Serial.available()) {
+        char ch = (char)Serial.read();
+        if (ch == '\n' || ch == '\r') {
+            if (serialCommandBuffer.length()) {
+                processSerialCommand(serialCommandBuffer);
+                serialCommandBuffer = "";
+            }
+        } else if (serialCommandBuffer.length() < 160) {
+            serialCommandBuffer += ch;
+        } else {
+            serialCommandBuffer = "";
+            Serial.println("ERROR COMMAND_TOO_LONG");
+        }
+    }
+}
+
 void setMotor(bool on) {
     digitalWrite(MOTOR_PIN, on ? MOTOR_ACTIVE_LEVEL :
                  (MOTOR_ACTIVE_LEVEL == HIGH ? LOW : HIGH));
@@ -886,6 +948,7 @@ void setup(){
 }
 
 void loop(){
+    pollSerialCommands();
     static bool littleFsDiagLoopDone=false;
     if(!littleFsDiagLoopDone && millis()>5000){
         littleFsDiagLoopDone=true;
