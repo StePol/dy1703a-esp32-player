@@ -845,6 +845,15 @@ void setup(){
 }
 
 void loop(){
+    static bool littleFsDiagLoopDone=false;
+    if(!littleFsDiagLoopDone && millis()>5000){
+        littleFsDiagLoopDone=true;
+        Serial.println("[LittleFS] DIAGNOSTIKA PO 5 SEKUNDACH");
+        Serial.printf("[LittleFS] total=%u used=%u free=%u exists_logo=%s\n",
+                      (unsigned)LittleFS.totalBytes(), (unsigned)LittleFS.usedBytes(),
+                      (unsigned)(LittleFS.totalBytes()-LittleFS.usedBytes()),
+                      LittleFS.exists(LOGO_PATH) ? "ANO" : "NIE");
+    }
     if(handleButtons())lastActivityMs=millis();
     player.poll();
 
