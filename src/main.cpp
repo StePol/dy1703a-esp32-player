@@ -577,9 +577,17 @@ load();
             uploadOk=true;
             String lower=filename; lower.toLowerCase();
             if(!(lower.endsWith(".png")||lower.endsWith(".jpg")||lower.endsWith(".jpeg"))){uploadOk=false;return;}
-            if(LittleFS.exists("/logo.tmp")) LittleFS.remove("/logo.tmp");
-            uploadFile=LittleFS.open("/logo.tmp",FILE_WRITE);
-            if(!uploadFile)uploadOk=false;
+            if(LittleFS.exists("/logo.tmp")) {
+                LittleFS.remove("/logo.tmp");
+            }
+            // Explicit write mode: create/truncate the temporary file for the upload.
+            uploadFile=LittleFS.open("/logo.tmp","w");
+            if(!uploadFile){
+                uploadOk=false;
+                Serial.println("[LOGO] CHYBA: nepodarilo sa vytvoriť /logo.tmp");
+            } else {
+                Serial.printf("[LOGO] /logo.tmp otvorené, upload: %s\\n", filename.c_str());
+            }
         }
         if(uploadOk && uploadFile){
             if(index+len>MAX_LOGO_SIZE){uploadOk=false;uploadFile.close();LittleFS.remove("/logo.tmp");return;}
@@ -588,9 +596,14 @@ load();
         if(final){
             if(uploadFile)uploadFile.close();
             if(uploadOk){
-                if(LittleFS.exists(LOGO_PATH)) LittleFS.remove(LOGO_PATH);
-                bool renamed=LittleFS.rename("/logo.tmp",LOGO_PATH);
+                if(uploadFile) uploadFile.close();
+                bool oldRemoved=true;
+                if(LittleFS.exists(LOGO_PATH)) oldRemoved=LittleFS.remove(LOGO_PATH);
+                bool renamed=oldRemoved && LittleFS.rename("/logo.tmp",LOGO_PATH);
                 logoExists=renamed && LittleFS.exists(LOGO_PATH);
+                Serial.printf("[LOGO] dokončenie: oldRemoved=%s renamed=%s exists=%s\\n",
+                              oldRemoved ? "ANO" : "NIE", renamed ? "ANO" : "NIE",
+                              logoExists ? "ANO" : "NIE");
                 if(!logoExists && LittleFS.exists("/logo.tmp")) LittleFS.remove("/logo.tmp");
             } else if(LittleFS.exists("/logo.tmp")) {
                 LittleFS.remove("/logo.tmp");
