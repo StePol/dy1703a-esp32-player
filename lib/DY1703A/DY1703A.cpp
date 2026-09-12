@@ -135,8 +135,12 @@ uint8_t DY1703A::checkPlayState() {
     return 0xFF;
 }
 
+uint8_t DY1703A::playState() {
+    return checkPlayState();
+}
+
 bool DY1703A::isPlaying() {
-    return checkPlayState() == 0x01;
+    return playState() == 0x01;
 }
 
 void DY1703A::poll() {
