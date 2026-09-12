@@ -569,7 +569,7 @@ load();
 
     server.on("/api/logo", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
-        if (!logoExists) request->send(200, "text/plain", "Logo nahraté.");
+        request->send(200, "text/plain", logoExists ? "Logo nahraté." : "Logo sa nepodarilo nahrať.");
     }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
         static File uploadFile;
         static bool uploadOk;
