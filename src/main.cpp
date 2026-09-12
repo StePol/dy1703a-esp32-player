@@ -381,7 +381,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <button onclick="cmd('/api/play')">▶ Play</button><button onclick="cmd('/api/pause')">⏸ Pauza</button><button onclick="cmd('/api/stop')">■ Stop</button>
 </div></div>
 <div class="card"><h3>Hlasitosť</h3><div class="controls">
-<button onclick="volume(-1)">−</button><input id="vol" type="range" min="0" max="30" value="20" oninput="document.getElementById('volText').textContent=this.value">
+<button onclick="volume(-1)">−</button><input id="vol" type="range" min="0" max="30" value="20" oninput="volumeSet(this.value)">
 <button onclick="volume(1)">+</button><button class="setvol" onclick="saveVolume()">SET</button>
 </div><div class="small" id="volText">20</div></div>
 <div class="card"><h3>Batéria</h3><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
@@ -394,7 +394,7 @@ for(let i=1;i<=8;i++){
  b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b);
 }
 async function cmd(u){try{await fetch(u);update()}catch(e){}}
-async function volume(d){let v=Number(document.getElementById('vol').value)+d;v=Math.max(0,Math.min(30,v));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}}
+async function volumeSet(v){v=Math.max(0,Math.min(30,Number(v)));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}} async function volume(d){let v=Number(document.getElementById('vol').value)+d;await volumeSet(v)}
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
 document.getElementById('title').textContent=s.device;
