@@ -704,6 +704,8 @@ load();
                     ",\"volume\":" + String(currentVolume) +
                     ",\"battery\":" + String(batteryPct) +
                     ",\"voltage\":" + String(batteryMv) +
+                    ",\"logo\":" + String(logoExists ? "true" : "false") +
+                    ",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\"" +
                     ",\"names\":" + namesJson +
                     ",\"vibration\":" + vibJson + "}";
         request->send(200,"application/json",json);
