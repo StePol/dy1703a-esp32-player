@@ -555,7 +555,7 @@ load();
                     "\",\"ssid\":\"" + jsonEscape(staSsid) +
                     "\",\"wpass\":\"" + jsonEscape(staPassword) +
                     "\",\"setpass\":\"" + jsonEscape(settingsPassword) + "\",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\",\"logo\":" + String(logoExists?"true":"false") +
-                    "\",\"tracks\":" + tracksJson +
+                    ",\"tracks\":" + tracksJson +
                     ",\"vibration\":" + vibJson + "}";
         request->send(200, "application/json", json);
     });
