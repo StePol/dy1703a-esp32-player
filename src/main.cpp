@@ -3,6 +3,7 @@
 #include <DNSServer.h>
 #include <Preferences.h>
 #include <LittleFS.h>
+#include "build_info.h"
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <esp_sleep.h>
@@ -54,7 +55,7 @@ String restoreBuffer;
 bool restoreUploadOk = false;
 
 const char *DEFAULT_DEVICE = "DY1703A Player";
-const char *CODE_VERSION = "1.0.0";
+// Version and Git commit are generated automatically by PlatformIO extra_script.py.
 const char *DEFAULT_AP_SSID = WIFI_AP_SSID;
 const char *DEFAULT_AP_PASSWORD = WIFI_AP_PASS;
 const char *DEFAULT_SETTINGS_PASSWORD = "12345";
@@ -719,7 +720,7 @@ load();
         }
         namesJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
-                    "\",\"version\":\"" + jsonEscape(CODE_VERSION) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
+                    "\",\"version\":\"" + jsonEscape(BUILD_VERSION) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
                     ",\"track\":" + String(currentTrack) +
                     ",\"volume\":" + String(currentVolume) +
                     ",\"battery\":" + String(batteryPct) +
