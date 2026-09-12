@@ -482,7 +482,7 @@ h1{font-size:23px;text-align:center}.card{background:#fff;border-radius:14px;pad
 h3{margin:4px 0 12px}.field{margin:11px 0}.field>label{display:block;font-size:14px;font-weight:bold;margin-bottom:5px}
 input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
 .passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:14px;padding:9px 11px}
-.submenu{width:100%;font-size:16px;background:#eee;padding:12px;margin-top:8px;text-align:left;border:0;border-radius:9px}
+.submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px}
 #trackSettings{display:none}.trackFieldRow{display:flex;align-items:center;gap:8px;margin:8px 0}.trackName{flex:1;min-width:0}
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}
 .action{width:100%;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
