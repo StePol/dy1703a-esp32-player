@@ -373,7 +373,8 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .trackIcon{display:inline-block;width:28px;text-align:center;margin-right:8px}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
-<div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>\n<h1 id="title"></h1>
+<div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
+<h1 id="title"></h1>
 <div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
 <div class="card"><h3>Skladby</h3><div class="trackList" id="tracks"></div></div>
 <div class="card"><h3>Ovládanie</h3><div class="playbar">
@@ -472,7 +473,13 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
-<div class="card"><h3>Logo</h3>\n<div class="field"><label>Vlastné logo (PNG/JPG, max. 300 kB)</label><input class="file" id="logoFile" type="file" accept="image/png,image/jpeg"></div>\n<button class="action" type="button" onclick="uploadLogo()">⬆ Nahrať logo</button>\n<button class="action warn" type="button" onclick="deleteLogo()">🗑 Odstrániť logo</button>\n<div class="field"><label>Externý odkaz po kliknutí na logo</label><input id="logourl" type="url" maxlength="200" placeholder="https://moja-stranka.sk"></div>\n<div class="small" id="logoStatus"></div></div>\n<div class="card"><h3>Zariadenie a Wi-Fi</h3>
+<div class="card"><h3>Logo</h3>
+<div class="field"><label>Vlastné logo (PNG/JPG, max. 300 kB)</label><input class="file" id="logoFile" type="file" accept="image/png,image/jpeg"></div>
+<button class="action" type="button" onclick="uploadLogo()">⬆ Nahrať logo</button>
+<button class="action warn" type="button" onclick="deleteLogo()">🗑 Odstrániť logo</button>
+<div class="field"><label>Externý odkaz po kliknutí na logo</label><input id="logourl" type="url" maxlength="200" placeholder="https://moja-stranka.sk"></div>
+<div class="small" id="logoStatus"></div></div>
+<div class="card"><h3>Zariadenie a Wi-Fi</h3>
 <div class="field"><label>Názov zariadenia</label><input id="device" maxlength="32"></div>
 <div class="field"><label>SSID zariadenia (AP)</label><input id="apssid" maxlength="32"></div>
 <div class="field"><label>Heslo AP (min. 8 znakov)</label><div class="passwordRow"><input id="appass" type="password" maxlength="63"><button class="showPass" type="button" onclick="toggle('appass',this)">👁</button></div></div>
@@ -508,7 +515,9 @@ function toggleTracks(){let e=document.getElementById('trackSettings');e.style.d
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
 document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
 for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1]}}
-async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}\nasync function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}\nasync function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);p.append('logourl',document.getElementById('logourl').value);
+async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}
+async function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}
+async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);p.append('logourl',document.getElementById('logourl').value);
 for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1')}
 let b=document.querySelector('.action');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';
 try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}catch(e){b.disabled=false;document.getElementById('msg').textContent='Chyba komunikácie'}}
