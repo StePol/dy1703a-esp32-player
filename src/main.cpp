@@ -386,8 +386,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .status{text-align:center;font-size:17px}.small{text-align:center;color:#666;font-size:14px;margin-top:7px}
 .battery{height:18px;background:#ddd;border-radius:10px;overflow:hidden}.bar{height:100%;width:0;background:#555}
 .settingsBtn{width:100%;font-size:17px;background:#eee;padding:12px;margin-top:4px}
-.trackBtn{width:94%;align-self:center;font-size:17px;padding:9px 12px;text-align:left}
-.trackIcon{display:inline-block;width:28px;text-align:center;margin-right:8px}
+ .trackBtn{width:94%;align-self:center;font-size:17px;padding:9px 12px;text-align:left}.trackIcon{display:inline-flex;align-items:center;justify-content:flex-start;width:52px;min-width:52px;white-space:nowrap;gap:4px}.trackNameMain{display:inline-block;vertical-align:middle}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
 <div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
@@ -407,7 +406,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
  let b=document.createElement('button');b.className='trackBtn';
- b.innerHTML='<span class="trackIcon" id="ti'+i+'">◻</span><span id="tnmain'+i+'">Skladba '+i+'</span>';
+ b.innerHTML='<span class="trackIcon" id="ti'+i+'">◻</span><span class="trackNameMain" id="tnmain'+i+'">Skladba '+i+'</span>';
  b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b);
 }
 async function cmd(u){try{await fetch(u);update()}catch(e){}}
@@ -421,7 +420,7 @@ document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—')
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
 if(document.activeElement.id!=='vol')document.getElementById('volText').textContent=s.volume;
 document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';
-if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).textContent=(s.loop&&s.loop[i-1]?'🔁 ':'')+(s.vibration&&s.vibration[i-1]?'📳':'◻');document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i)}
+if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).innerHTML=(s.loop&&s.loop[i-1]?'🔁':'')+(s.vibration&&s.vibration[i-1]?'📳':'');document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i)}
 }catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
