@@ -46,6 +46,7 @@ String logoUrl;
 bool logoExists = false;
 String trackNames[8];
 bool vibrationEnabled[8];
+bool loopEnabled[8];
 
 String settingsSessionToken;
 String restoreBuffer;
@@ -109,6 +110,8 @@ void loadSettings() {
         char vkey[8];
         snprintf(vkey, sizeof(vkey), "vib%u", i + 1);
         vibrationEnabled[i] = preferences.getBool(vkey, false);
+        char lkey[8]; snprintf(lkey, sizeof(lkey), "lop%u", i + 1);
+        loopEnabled[i] = preferences.getBool(lkey, false);
     }
 
     Serial.printf("Nastavenia: zariadenie='%s', AP SSID='%s', STA SSID='%s', hlasitost=%u\n",
@@ -119,7 +122,8 @@ void saveSettings(const String &newDeviceName, const String &newApSsid,
                   const String &newApPassword, const String &newStaSsid,
                   const String &newStaPassword, const String &newSettingsPassword,
                   uint8_t newVolume, const String newTrackNames[8],
-                  const bool newVibrationEnabled[8]) {
+                  const bool newVibrationEnabled[8],
+                  const bool newLoopEnabled[8]) {
     deviceName = newDeviceName.length() ? newDeviceName : DEFAULT_DEVICE;
     apSsid = newApSsid.length() ? newApSsid : DEFAULT_AP_SSID;
     apPassword = newApPassword;
@@ -149,23 +153,28 @@ void saveSettings(const String &newDeviceName, const String &newApSsid,
         if (name.length() > 40) name = name.substring(0, 40);
         trackNames[i] = name;
         vibrationEnabled[i] = newVibrationEnabled[i];
+        loopEnabled[i] = newLoopEnabled[i];
 
         char key[8]; snprintf(key, sizeof(key), "trk%u", i + 1);
         preferences.putString(key, trackNames[i]);
         char vkey[8]; snprintf(vkey, sizeof(vkey), "vib%u", i + 1);
         preferences.putBool(vkey, vibrationEnabled[i]);
+        char lkey[8]; snprintf(lkey, sizeof(lkey), "lop%u", i + 1);
+        preferences.putBool(lkey, loopEnabled[i]);
     }
 }
 
 void resetToDefaults() {
     String defaults[8];
     bool noVibration[8];
+    bool noLoop[8];
     for (uint8_t i = 0; i < 8; i++) {
         defaults[i] = "Skladba " + String(i + 1);
         noVibration[i] = false;
+        noLoop[i] = false;
     }
     saveSettings(DEFAULT_DEVICE, DEFAULT_AP_SSID, DEFAULT_AP_PASSWORD,
-                 "", "", DEFAULT_SETTINGS_PASSWORD, 20, defaults, noVibration);
+                 "", "", DEFAULT_SETTINGS_PASSWORD, 20, defaults, noVibration, noLoop);
     player.setVolume(currentVolume);
 }
 
@@ -209,6 +218,7 @@ String makeBackup() {
     for (uint8_t i = 0; i < 8; i++) {
         out += "trk" + String(i + 1) + "=" + trackNames[i] + "\n";
         out += "vib" + String(i + 1) + "=" + String(vibrationEnabled[i] ? 1 : 0) + "\n";
+        out += "lop" + String(i + 1) + "=" + String(loopEnabled[i] ? 1 : 0) + "\n";
     }
     return out;
 }
@@ -219,11 +229,13 @@ bool parseBackup(const String &data) {
     String newSettingsPassword = DEFAULT_SETTINGS_PASSWORD;
     String newTrackNames[8];
     bool newVibration[8];
+    bool newLoop[8];
     int newVolume = 20;
 
     for (uint8_t i = 0; i < 8; i++) {
         newTrackNames[i] = "Skladba " + String(i + 1);
         newVibration[i] = false;
+        newLoop[i] = false;
     }
 
     int start = 0;
@@ -253,6 +265,9 @@ bool parseBackup(const String &data) {
         } else if (key.startsWith("vib")) {
             int n = key.substring(3).toInt();
             if (n >= 1 && n <= 8) newVibration[n - 1] = value.toInt() != 0;
+        } else if (key.startsWith("lop")) {
+            int n = key.substring(3).toInt();
+            if (n >= 1 && n <= 8) newLoop[n - 1] = value.toInt() != 0;
         }
     }
 
@@ -265,7 +280,7 @@ bool parseBackup(const String &data) {
     newVolume = constrain(newVolume, 0, 30);
     saveSettings(newDevice, newApSsid, newApPassword, newStaSsid,
                  newStaPassword, newSettingsPassword, (uint8_t)newVolume,
-                 newTrackNames, newVibration);
+                 newTrackNames, newVibration, newLoop);
     player.setVolume(currentVolume);
     return true;
 }
@@ -405,7 +420,7 @@ document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—')
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
 if(document.activeElement.id!=='vol')document.getElementById('volText').textContent=s.volume;
 document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';
-if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).textContent=s.vibration&&s.vibration[i-1]?'📳':'◻';document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i)}
+if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).textContent=(s.loop&&s.loop[i-1]?'🔁 ':'')+(s.vibration&&s.vibration[i-1]?'📳':'◻');document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i)}
 }catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
@@ -490,7 +505,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="card"><h3>Zariadenie a WIFI</h3>
 <div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
 </div>
-<div class="card"><h3>Názvy skladieb a vibrácia</h3>
+<div class="card"><h3>Názvy skladieb, vibrácia a LOOP</h3>
 <button class="submenu" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
 <div id="trackSettings"><div id="trackFields"></div></div>
 </div>
@@ -508,18 +523,18 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 const tf=document.getElementById('trackFields');
 for(let i=1;i<=8;i++){
  let row=document.createElement('div');row.className='trackFieldRow';
- row.innerHTML='<input class="trackName" id="tn'+i+'" maxlength="40" placeholder="Skladba '+i+'"><div class="trackOption"><input type="checkbox" id="tv'+i+'"><label for="tv'+i+'">📳</label></div>';
+ row.innerHTML='<input class="trackName" id="tn'+i+'" maxlength="40" placeholder="Skladba '+i+'"><div class="trackOption"><input type="checkbox" id="tv'+i+'"><label for="tv'+i+'">📳</label></div><div class="trackOption"><input type="checkbox" id="tl'+i+'"><label for="tl'+i+'">LOOP</label></div>';
  tf.appendChild(row);
 }
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
 function toggleTracks(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
 document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
-for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1]}}
+for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1];document.getElementById('tl'+i).checked=!!s.loop[i-1]}}
 async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}
 async function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}
 async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);p.append('logourl',document.getElementById('logourl').value);
-for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1')}
+for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1');if(document.getElementById('tl'+i).checked)p.append('lop'+i,'1')}
 let b=document.querySelector('.action');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';
 try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}catch(e){b.disabled=false;document.getElementById('msg').textContent='Chyba komunikácie'}}
 async function defaults(){if(!confirm('Naozaj obnoviť výrobné nastavenie? Vymaže sa aj Wi-Fi STA a názvy skladieb.'))return;let r=await fetch('/api/defaults',{method:'POST'});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}
@@ -543,13 +558,14 @@ load();
 
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
-        String tracksJson="[", vibJson="[";
+        String tracksJson="[", vibJson="[", loopJson="[";
         for (uint8_t i=0;i<8;i++) {
-            if(i){tracksJson+=",";vibJson+=",";}
+            if(i){tracksJson+=",";vibJson+=",";loopJson+=",";}
             tracksJson+="\"" + jsonEscape(trackNames[i]) + "\"";
             vibJson += vibrationEnabled[i] ? "true" : "false";
+            loopJson += loopEnabled[i] ? "true" : "false";
         }
-        tracksJson+="]";vibJson+="]";
+        tracksJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
                     "\",\"apssid\":\"" + jsonEscape(apSsid) +
                     "\",\"appass\":\"" + jsonEscape(apPassword) +
@@ -557,7 +573,7 @@ load();
                     "\",\"wpass\":\"" + jsonEscape(staPassword) +
                     "\",\"setpass\":\"" + jsonEscape(settingsPassword) + "\",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\",\"logo\":" + String(logoExists?"true":"false") +
                     ",\"tracks\":" + tracksJson +
-                    ",\"vibration\":" + vibJson + "}";
+                    ",\"vibration\":" + vibJson + ",\"loop\":" + loopJson + "}";
         request->send(200, "application/json", json);
     });
 
@@ -632,7 +648,7 @@ load();
         if(newApPassword.length()<8||newApPassword.length()>63){request->send(400,"text/plain","Heslo AP musí mať 8 až 63 znakov.");return;}
         if(newSettingsPassword.length()==0){request->send(400,"text/plain","Heslo pre nastavenia nesmie byť prázdne.");return;}
 
-        String newTrackNames[8];bool newVibration[8];
+        String newTrackNames[8];bool newVibration[8];bool newLoop[8];
         for(uint8_t i=0;i<8;i++){
             char param[10];snprintf(param,sizeof(param),"track%u",i+1);
             newTrackNames[i]=request->hasParam(param,true)?request->getParam(param,true)->value():trackNames[i];
@@ -640,10 +656,12 @@ load();
             if(newTrackNames[i].length()==0)newTrackNames[i]="Skladba "+String(i+1);
             snprintf(param,sizeof(param),"vib%u",i+1);
             newVibration[i]=request->hasParam(param,true);
+            snprintf(param,sizeof(param),"lop%u",i+1);
+            newLoop[i]=request->hasParam(param,true);
         }
 
         saveSettings(newDevice,newApSsid,newApPassword,newStaSsid,newStaPassword,
-                     newSettingsPassword,currentVolume,newTrackNames,newVibration);
+                     newSettingsPassword,currentVolume,newTrackNames,newVibration,newLoop);
         lastActivityMs=millis();
         wifiRestartPending=true;
         wifiRestartAtMs=millis()+2500UL;
@@ -874,11 +892,18 @@ void loop(){
     player.poll();
 
     static unsigned long lastBatteryRead=0,lastMotorPoll=0;
+    static bool wasPlaying=false;
     unsigned long now=millis();
 
     if(now-lastMotorPoll>=MOTOR_POLL_INTERVAL_MS){
         lastMotorPoll=now;
         currentPlaying=player.isPlaying();
+        if(wasPlaying && !currentPlaying && currentTrack>=1 && currentTrack<=8 && loopEnabled[currentTrack-1]){
+            player.playTrack(currentTrack);
+            currentPlaying=true;
+            Serial.printf("[LOOP] opakujem skladbu %u\\n", currentTrack);
+        }
+        wasPlaying=currentPlaying;
         setMotor(currentPlaying&&currentTrack>=1&&currentTrack<=8&&vibrationEnabled[currentTrack-1]);
         if(currentPlaying)lastActivityMs=now;
     }
