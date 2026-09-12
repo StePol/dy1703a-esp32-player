@@ -32,6 +32,9 @@ public:
     // Pohodlná skratka: true, ak modul práve prehráva.
     bool isPlaying();
 
+    // Vráti 1=play, 2=pause, 0=stop, 0xFF=timeout/chyba.
+    uint8_t playState();
+
     // Zavolaj pravidelne v loop() ak chceš spracovávať odpovede modulu
     // (napr. potvrdenie stavu prehrávania).
     void poll();
