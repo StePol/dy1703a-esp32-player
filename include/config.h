@@ -1,0 +1,35 @@
+#pragma once
+
+#define DY_UART_NUM     2
+#define DY_TX_PIN       17
+#define DY_RX_PIN       16
+#define DY_BAUD_RATE    9600
+
+constexpr uint8_t TRACK_BUTTON_PINS[8] = {25, 33, 32, 35, 13, 14, 27, 26};
+constexpr uint8_t INPUT_ONLY_PIN_COUNT = 1;
+constexpr uint8_t INPUT_ONLY_PINS[INPUT_ONLY_PIN_COUNT] = {35};
+#define BTN_DEBOUNCE_MS 40
+
+#define WIFI_AP_SSID    "DY1703A-Player"
+#define WIFI_AP_PASS    "password"
+#define WEB_SERVER_PORT 80
+#define WIFI_STA_SSID   ""
+#define WIFI_STA_PASS   ""
+#define WIFI_STA_TIMEOUT_MS 15000UL
+#define WIFI_CONNECT_TIMEOUT_MS 90000UL
+#define WIFI_DISCONNECT_GRACE_MS 60000UL
+
+#define BLE_DEVICE_NAME "DY1703A-Player"
+
+#define BATTERY_ADC_PIN     34
+#define BATTERY_ENABLE_PIN  23
+#define BATTERY_R_TOP       100000.0f
+#define BATTERY_R_BOTTOM    100000.0f
+#define BATTERY_READ_INTERVAL_MS 10000
+
+#define MOTOR_PIN 4
+#define MOTOR_ACTIVE_LEVEL HIGH
+#define MOTOR_POLL_INTERVAL_MS 300
+
+#define INACTIVITY_TIMEOUT_MS         30000UL
+#define LIGHT_SLEEP_CHECK_INTERVAL_MS 5000UL
