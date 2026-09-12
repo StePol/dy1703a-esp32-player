@@ -494,7 +494,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div id="trackSettings"><div id="trackFields"></div></div>
 </div>
 <div class="card"><h3>Údržba</h3>
-<a href="/api/backup">⬇ Zápis konfigurácie</a>
+<a class="action" href="/api/backup">⬇ Zápis konfigurácie</a>
 <div>Obnovenie konfigurácie:</div><input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
 <button class="action" onclick="restore()">⬆ Obnovenie konfigurácie</button>
 <button class="action warn" onclick="defaults()">↺ Obnovenie výrobných nastavení</button>
