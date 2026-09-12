@@ -513,7 +513,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="card"><h3>Príkazy</h3>
 <button class="submenu" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
 <div id="maintenanceSettings" style="display:none">
-<a class="action" href="/api/backup">⬇ Zápis konfigurácie</a>
+<button class="action" type="button" onclick="backupConfig()">⬇ Zápis konfigurácie</button>
 <div>Obnovenie konfigurácie:</div><input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
 <button class="action" onclick="restore()">⬆ Obnovenie konfigurácie</button>
 <button class="action warn" onclick="defaults()">↺ Obnovenie výrobných nastavení</button>
@@ -532,6 +532,7 @@ for(let i=1;i<=8;i++){
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
 function toggleTracks(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
 function toggleMaintenance(){let e=document.getElementById('maintenanceSettings');e.style.display=e.style.display==='block'?'none':'block'}
+function backupConfig(){window.location.href='/api/backup'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
 document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
 for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1];document.getElementById('tl'+i).checked=!!s.loop[i-1]}}
