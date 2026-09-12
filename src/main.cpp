@@ -813,15 +813,27 @@ void setup(){
     Serial.begin(115200);
     delay(300);
     setupButtons();
-    if (!LittleFS.begin(true)) Serial.println(F("CHYBA: LittleFS sa nepodarilo pripojiť"));
-
-  Serial.println("[LittleFS] Diagnostika:");
-  Serial.printf("[LittleFS] total=%u bytes, used=%u bytes, free=%u bytes\n", (unsigned)LittleFS.totalBytes(), (unsigned)LittleFS.usedBytes(), (unsigned)(LittleFS.totalBytes()-LittleFS.usedBytes()));
-  Serial.printf("[LittleFS] /logo exists=%s, size=%u bytes\n", LittleFS.exists("/logo") ? "ANO" : "NIE", LittleFS.exists("/logo") ? (unsigned)LittleFS.open("/logo","r").size() : 0u);
-  if (LittleFS.exists("/littlefs_test.tmp")) LittleFS.remove("/littlefs_test.tmp");
-  File diagFile=LittleFS.open("/littlefs_test.tmp", FILE_WRITE);
-  if (diagFile) { diagFile.print("test"); diagFile.close(); Serial.println("[LittleFS] testovací zápis: OK"); LittleFS.remove("/littlefs_test.tmp"); }
-  else Serial.println("[LittleFS] testovací zápis: ZLYHAL");
+    Serial.println("[LittleFS] START");
+    Serial.println("[LittleFS] pred begin");
+    bool littleFsOk = LittleFS.begin(false);
+    Serial.printf("[LittleFS] begin %s\n", littleFsOk ? "OK" : "ZLYHAL");
+    if (!littleFsOk) {
+        Serial.println("[LittleFS] filesystem sa nebude automaticky formatovať.");
+    } else {
+        Serial.println("[LittleFS] kontrola /logo");
+        bool hasLogo = LittleFS.exists(LOGO_PATH);
+        unsigned logoSize = 0;
+        if (hasLogo) {
+            File lf = LittleFS.open(LOGO_PATH, "r");
+            if (lf) { logoSize = (unsigned)lf.size(); lf.close(); }
+        }
+        Serial.printf("[LittleFS] total=%u used=%u free=%u\n",
+                      (unsigned)LittleFS.totalBytes(),
+                      (unsigned)LittleFS.usedBytes(),
+                      (unsigned)(LittleFS.totalBytes() - LittleFS.usedBytes()));
+        Serial.printf("[LittleFS] /logo exists=%s size=%u\n", hasLogo ? "ANO" : "NIE", logoSize);
+        Serial.println("[LittleFS] diagnostika hotová");
+    }
     loadSettings();
     player.begin(DY_BAUD_RATE,DY_RX_PIN,DY_TX_PIN);
     player.setVolume(currentVolume);
