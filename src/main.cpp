@@ -373,7 +373,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .trackIcon{display:inline-block;width:28px;text-align:center;margin-right:8px}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
-<h1 id="title"></h1>
+<div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>\n<h1 id="title"></h1>
 <div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
 <div class="card"><h3>Skladby</h3><div class="trackList" id="tracks"></div></div>
 <div class="card"><h3>Ovládanie</h3><div class="playbar">
@@ -598,7 +598,9 @@ load();
         String newLogoUrl=request->hasParam("logourl",true)?request->getParam("logourl",true)->value():logoUrl;
 
         newDevice.trim();newApSsid.trim();newApPassword.trim();newStaSsid.trim();newSettingsPassword.trim();newLogoUrl.trim();
-        if(newLogoUrl.length()>0 && !(newLogoUrl.startsWith("http://")||newLogoUrl.startsWith("https://"))){request->send(400,"text/plain","Odkaz loga musí začínať http:// alebo https://.");return;}\n        if(newLogoUrl.length()>200)newLogoUrl=newLogoUrl.substring(0,200);\n        logoUrl=newLogoUrl;
+        if(newLogoUrl.length()>0 && !(newLogoUrl.startsWith("http://")||newLogoUrl.startsWith("https://"))){request->send(400,"text/plain","Odkaz loga musí začínať http:// alebo https://.");return;}
+        if(newLogoUrl.length()>200)newLogoUrl=newLogoUrl.substring(0,200);
+        logoUrl=newLogoUrl;
         if(newDevice.length()==0)newDevice=DEFAULT_DEVICE;
         if(newApSsid.length()==0)newApSsid=DEFAULT_AP_SSID;
         if(newApPassword.length()<8||newApPassword.length()>63){request->send(400,"text/plain","Heslo AP musí mať 8 až 63 znakov.");return;}
@@ -799,11 +801,11 @@ void setup(){
     Serial.begin(115200);
     delay(300);
     setupButtons();
+    if (!LittleFS.begin(true)) Serial.println(F("CHYBA: LittleFS sa nepodarilo pripojiť"));
     loadSettings();
     player.begin(DY_BAUD_RATE,DY_RX_PIN,DY_TX_PIN);
     player.setVolume(currentVolume);
     battery.begin();
-    if (!LittleFS.begin(true)) Serial.println(F("CHYBA: LittleFS sa nepodarilo pripojiť"));
     settingsSessionToken="";
     lastActivityMs=millis();
     Serial.println(F("DY1703A ESP32 Player – ready"));
