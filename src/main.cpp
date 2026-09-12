@@ -414,7 +414,7 @@ async function cmd(u){try{await fetch(u);update()}catch(e){}}
 async function volumeSet(v){v=Math.max(0,Math.min(30,Number(v)));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}} async function volume(d){let v=Number(document.getElementById('vol').value)+d;await volumeSet(v)}
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
-document.getElementById('title').textContent=s.device;document.getElementById('version').textContent='v'+s.version;
+document.getElementById('title').textContent=s.device;document.getElementById('version').textContent='v'+s.version+' · '+s.git;
 if(s.logo){document.getElementById('logoWrap').style.display='block';document.getElementById('logo').src='/logo?'+Date.now();document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
 document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');
 document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');
@@ -720,7 +720,7 @@ load();
         }
         namesJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
-                    "\",\"version\":\"" + jsonEscape(BUILD_VERSION) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
+                    "\",\"version\":\"" + jsonEscape(BUILD_VERSION) + "\",\"git\":\"" + jsonEscape(BUILD_GIT_SHA) + "\",\"build\":\"" + jsonEscape(BUILD_NUMBER) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
                     ",\"track\":" + String(currentTrack) +
                     ",\"volume\":" + String(currentVolume) +
                     ",\"battery\":" + String(batteryPct) +
