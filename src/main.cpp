@@ -576,7 +576,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <button class="submenu" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
 <div id="maintenanceSettings" style="display:none">
 <button class="action" type="button" onclick="backupConfig()">⬇ Zápis konfigurácie</button>
-<div>Obnovenie konfigurácie:</div><input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
+<input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
 <button class="action" onclick="restore()">⬆ Obnovenie konfigurácie</button>
 <button class="action warn" onclick="defaults()">↺ Obnovenie výrobných nastavení</button>
 <div class="msg" id="msg"></div>
