@@ -569,7 +569,7 @@ load();
 
     server.on("/api/logo", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
-        request->send(200, "text/plain", logoExists ? "Logo nahraté." : "Logo sa nepodarilo nahrať.");
+        request->send(logoExists ? 200 : 500, "text/plain", logoExists ? "Logo nahraté." : "Logo sa nepodarilo nahrať.");
     }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
         static File uploadFile;
         static bool uploadOk;
@@ -578,7 +578,7 @@ load();
             String lower=filename; lower.toLowerCase();
             if(!(lower.endsWith(".png")||lower.endsWith(".jpg")||lower.endsWith(".jpeg"))){uploadOk=false;return;}
             if(LittleFS.exists("/logo.tmp")) LittleFS.remove("/logo.tmp");
-            uploadFile=LittleFS.open("/logo.tmp","w");
+            uploadFile=LittleFS.open("/logo.tmp",FILE_WRITE);
             if(!uploadFile)uploadOk=false;
         }
         if(uploadOk && uploadFile){
