@@ -565,16 +565,13 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="field"><label>Domáca Wi-Fi SSID</label><input id="ssid" maxlength="64"></div>
 <div class="field"><label>Domáca Wi-Fi heslo</label><div class="passwordRow"><input id="wpass" type="password" maxlength="64"><button class="showPass" type="button" onclick="toggle('wpass',this)">👁</button></div></div>
 </div>
-<div class="card"><h3>Zariadenie a WIFI</h3>
-<div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
-</div>
 <div class="card"><h3>Názvy skladieb, vibrácia a LOOP</h3>
 <button class="submenu" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
 <div id="trackSettings"><div id="trackFields"></div></div>
 </div>
 <div class="card"><h3>Príkazy</h3>
 <button class="submenu" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
-<div id="maintenanceSettings" style="display:none">
+<div id="maintenanceSettings" style="display:none"><div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
 <button class="action" type="button" onclick="backupConfig()">⬇ Zápis konfigurácie</button>
 <input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
 <button class="action" onclick="restore()">⬆ Obnovenie konfigurácie</button>
