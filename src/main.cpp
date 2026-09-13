@@ -552,24 +552,25 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
-<div class="card"><h3>Logo</h3>
+<div class="card">
+<button class="submenu" type="button" onclick="toggleLogo()">🖼 Logo</button>
+<div id="logoSettings" style="display:none">
 <div class="field"><label>Vlastné logo (PNG/JPG, max. 300 kB)</label><input class="file" id="logoFile" type="file" accept="image/png,image/jpeg"></div>
 <button class="action" type="button" onclick="uploadLogo()">⬆ Nahrať logo</button>
 <button class="action warn" type="button" onclick="deleteLogo()">🗑 Odstrániť logo</button>
 <div class="field"><label>Externý odkaz po kliknutí na logo</label><input id="logourl" type="url" maxlength="200" placeholder="https://moja-stranka.sk"></div>
-<div class="small" id="logoStatus"></div></div>
-<div class="card"><h3>Zariadenie a Wi-Fi</h3>
+<div class="small" id="logoStatus"></div>
+</div>
+<button class="submenu" type="button" onclick="toggleDevice()">⚙ Zariadenie a Wi-Fi</button>
+<div id="deviceSettings" style="display:none">
 <div class="field"><label>Názov zariadenia</label><input id="device" maxlength="32"></div>
 <div class="field"><label>SSID zariadenia (AP)</label><input id="apssid" maxlength="32"></div>
 <div class="field"><label>Heslo AP (min. 8 znakov)</label><div class="passwordRow"><input id="appass" type="password" maxlength="63"><button class="showPass" type="button" onclick="toggle('appass',this)">👁</button></div></div>
 <div class="field"><label>Domáca Wi-Fi SSID</label><input id="ssid" maxlength="64"></div>
 <div class="field"><label>Domáca Wi-Fi heslo</label><div class="passwordRow"><input id="wpass" type="password" maxlength="64"><button class="showPass" type="button" onclick="toggle('wpass',this)">👁</button></div></div>
 </div>
-<div class="card"><h3>Názvy skladieb, vibrácia a LOOP</h3>
 <button class="submenu" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
 <div id="trackSettings"><div id="trackFields"></div></div>
-</div>
-<div class="card"><h3>Príkazy</h3>
 <button class="submenu" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
 <div id="maintenanceSettings" style="display:none"><div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
 <button class="action" type="button" onclick="backupConfig()">⬇ Zápis konfigurácie</button>
@@ -589,6 +590,8 @@ for(let i=1;i<=8;i++){
  tf.appendChild(row);
 }
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
+function toggleLogo(){let e=document.getElementById('logoSettings');e.style.display=e.style.display==='block'?'none':'block'}
+function toggleDevice(){let e=document.getElementById('deviceSettings');e.style.display=e.style.display==='block'?'none':'block'}
 function toggleTracks(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
 function toggleMaintenance(){let e=document.getElementById('maintenanceSettings');e.style.display=e.style.display==='block'?'none':'block'}
 function backupConfig(){window.location.href='/api/backup'}
