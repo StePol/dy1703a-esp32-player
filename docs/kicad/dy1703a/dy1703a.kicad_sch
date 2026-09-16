@@ -6582,6 +6582,16 @@
 		)
 		(uuid "fe1353b5-f8a4-4384-9ff0-202d9f73dff2")
 	)
+	(label "SERIAL_1"
+		(at 147.32 66.04 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "58d323e3-da65-4d70-8411-f49575bf2d49")
+	)
 	(label "VBAT"
 		(at 177.8 121.92 0)
 		(effects
@@ -6601,6 +6611,16 @@
 			(justify left bottom)
 		)
 		(uuid "a486e9f6-adc5-45d3-a026-941e01e19f5f")
+	)
+	(label "SERIAL_2"
+		(at 147.32 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d7a78ea3-f92d-43ac-b150-c4ef271baf45")
 	)
 	(label "BAT_IN"
 		(at 138.43 142.24 0)
