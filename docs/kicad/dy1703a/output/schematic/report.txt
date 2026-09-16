@@ -1,0 +1,3 @@
+Vykreslené do 'C:\Users\techt\Documents\PROJEKTY\ZVUKOVINY\8keyPLAY\dy1703a-esp32-player\docs\kicad\dy1703a\output\schematic\dy1703a.pdf'.
+
+Info: Hotovo.

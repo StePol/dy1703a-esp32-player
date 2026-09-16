@@ -9,6 +9,8 @@
 		(date "2026-09-16")
 		(rev "1.0")
 		(company "TRIX Lubomir Drgan")
+		(comment 1 "Autor: Stefan Polacik")
+		(comment 2 "GitHub: StePol/dy1703a-esp32-player")
 	)
 	(lib_symbols
 		(symbol "Device:Battery_Cell"
