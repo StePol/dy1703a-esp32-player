@@ -1,0 +1,37 @@
+#VRML V2.0 utf8
+# Zjednoduseny 3D model modulu LX-LCBST (doska + USB-C konektor)
+# Suradnice su v mm, v KiCad footprinte pouzit scale 0.393701 (1/2.54) - WRL konvencia
+
+Transform {
+  translation 0 0 0.8
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.05 0.05 0.05
+          ambientIntensity 0.3
+          specularColor 0.1 0.1 0.1
+          shininess 0.2
+        }
+      }
+      geometry Box { size 20 17 1.6 }
+    }
+  ]
+}
+
+Transform {
+  translation 0 6.5 3.4
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.75 0.75 0.78
+          ambientIntensity 0.4
+          specularColor 0.9 0.9 0.9
+          shininess 0.6
+        }
+      }
+      geometry Box { size 9 6 3.6 }
+    }
+  ]
+}

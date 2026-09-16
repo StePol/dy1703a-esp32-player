@@ -1,0 +1,41 @@
+(footprint "LX-LCBST_Module" (version 20221018) (generator pcbnew)
+  (layer "F.Cu")
+  (descr "TP4056 USB-C nabijaci + boost modul LX-LCBST. Rozmery su ODHAD podla pravitka na fotke (cca 20x17mm) - pred vyrobou overit posuvnym meradlom.")
+  (tags "battery charger boost TP4056 USB-C LX-LCBST")
+  (attr through_hole)
+  (fp_text reference "REF**" (at 0 -10) (layer "F.SilkS")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (fp_text value "LX-LCBST_Module" (at 0 10.5) (layer "F.Fab")
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (fp_rect (start -10 -8.5) (end 10 8.5) (layer "F.SilkS") (width 0.15) (fill none))
+
+  (fp_text user "VO+" (at -7.5 6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "VO-" (at -2.5 6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "IN-" (at 2.5 6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "IN+" (at 7.5 6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+
+  (fp_text user "VO+" (at -7.5 -6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "VO-" (at -2.5 -6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "B+" (at 2.5 -6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+  (fp_text user "B-" (at 7.5 -6.5) (layer "F.SilkS") (effects (font (size 0.8 0.8) (thickness 0.12))))
+
+  (pad "5" thru_hole circle (at -7.5 8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "6" thru_hole circle (at -2.5 8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "2" thru_hole circle (at 2.5 8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "1" thru_hole rect (at 7.5 8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+
+  (pad "5" thru_hole circle (at -7.5 -8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "6" thru_hole circle (at -2.5 -8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "3" thru_hole circle (at 2.5 -8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+  (pad "4" thru_hole circle (at 7.5 -8.5) (size 2 2) (drill 1) (layers "*.Cu" "*.Mask"))
+
+  (fp_text user "USB-C" (at 0 9.5) (layer "F.Fab") (effects (font (size 0.7 0.7) (thickness 0.1))))
+
+  (model "${KIPRJMOD}/LX-LCBST/LX-LCBST.pretty/LX-LCBST_Module.wrl"
+    (offset (xyz 0 0 0))
+    (scale (xyz 0.393701 0.393701 0.393701))
+    (rotate (xyz 0 0 0))
+  )
+)
