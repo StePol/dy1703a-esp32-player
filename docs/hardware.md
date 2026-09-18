@@ -4,6 +4,8 @@
 
 Aktuálny KiCad projekt obsahuje ESP32 DevKit, DY1703A, Li-ion/LiPo článok, LX-LCBST nabíjací/boost modul, reproduktor, 8 tlačidiel, vibračný motor, tranzistorové riadenie, batériový merací obvod, LED a pasívne súčiastky.
 
+Zdrojom pravdy pre GPIO a systémové hardvérové nastavenia firmvéru je `include/config.h`.
+
 ## ESP32 ↔ DY1703A
 
 | ESP32 | GPIO | DY1703A |
@@ -12,11 +14,11 @@ Aktuálny KiCad projekt obsahuje ESP32 DevKit, DY1703A, Li-ion/LiPo článok, LX
 | RX | GPIO16 | TX |
 | GND | GND | GND |
 
-UART: `9600, 8N1`.
+UART: **9600, 8N1**.
 
 ## Tlačidlá
 
-**Zdrojová pravda firmvéru je `include/config.h`:**
+Všetkých 8 tlačidiel je aktívnych LOW.
 
 | Skladba | GPIO | Poznámka |
 |---:|---:|---|
@@ -29,9 +31,7 @@ UART: `9600, 8N1`.
 | 7 | 27 | aktívne LOW |
 | 8 | 26 | aktívne LOW |
 
-GPIO35 nemá interný pull-up; vyžaduje externé riešenie.
-
-> `docs/wiring.md` obsahuje staršie mapovanie tlačidiel. Pred výrobou treba zosúladiť firmware, schému a skutočnú kabeláž.
+GPIO35 je vstup-only a nemá interný pull-up, preto tlačidlo na GPIO35 vyžaduje externý pull-up na 3.3 V.
 
 ## Batéria
 
@@ -67,6 +67,24 @@ LX-LCBST / nabíjanie + boost
 
 Všetky časti musia mať spoločnú GND.
 
+## Kompletný prehľad GPIO
+
+| GPIO | Funkcia |
+|---:|---|
+| 4 | vibračný motor |
+| 13 | tlačidlo 5 |
+| 14 | tlačidlo 6 |
+| 16 | UART RX |
+| 17 | UART TX |
+| 23 | BAT_EN |
+| 25 | tlačidlo 1 |
+| 26 | tlačidlo 8 |
+| 27 | tlačidlo 7 |
+| 32 | tlačidlo 3 |
+| 33 | tlačidlo 2 |
+| 34 | BAT_IN / ADC |
+| 35 | tlačidlo 4, input-only |
+
 ## KiCad schéma
 
 `docs/kicad/dy1703a/dy1703a.kicad_sch`
@@ -88,3 +106,6 @@ Projekt obsahuje vlastný symbol/footprint DY1703A a lokálnu knižnicu LX-LCBST
 
 Footprint LX-LCBST uvádza rozmery ako odhad podľa fotografie; pred výrobou ich treba overiť.
 
+## Dôležité upozornenie pred výrobou
+
+Pred výrobou alebo osadením hardvéru treba overiť, že KiCad schéma a skutočné zapojenie zodpovedajú GPIO mapovaniu v `include/config.h`, najmä mapovaniu ôsmich tlačidiel.
