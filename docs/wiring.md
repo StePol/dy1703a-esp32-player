@@ -1,6 +1,6 @@
 # Schéma zapojenia
 
-Tento dokument zodpovedá aktuálnemu firmvéru v `main` a zapojeniu podľa aktuálnej ručne kreslenej schémy.
+Tento dokument zodpovedá aktuálnemu firmvéru. **Zdrojom pravdy pre GPIO a systémové hardvérové nastavenia je `include/config.h`.**
 
 ## 1. Napájanie
 
@@ -34,22 +34,34 @@ Firmware používa HardwareSerial UART2:
 | GND | GND | GND | spoločná zem |
 | 5V | VIN/5V | VCC | napájanie modulu |
 
+Parametre UART:
+
+- baudrate: **9600**
+- formát: **8N1**
+- UART: **UART2**
+
 ## 3. Osem tlačidiel
 
-Každé tlačidlo je samostatne medzi GPIO a GND. Všetky tlačidlá sú aktívne LOW.
+Každé tlačidlo je samostatne medzi príslušným GPIO a GND. Všetky tlačidlá sú aktívne LOW.
 
-| Skladba | ESP32 GPIO |
-|---:|---:|
-| 1 | **GPIO13** |
-| 2 | **GPIO14** |
-| 3 | **GPIO27** |
-| 4 | **GPIO26** |
-| 5 | **GPIO25** |
-| 6 | **GPIO33** |
-| 7 | **GPIO32** |
-| 8 | **GPIO35** |
+Aktuálne mapovanie podľa `include/config.h`:
 
-GPIO35 vyžaduje externý pull-up na 3.3 V.
+| Tlačidlo | Skladba | ESP32 GPIO |
+|---:|---:|---:|
+| KEY1 | 1 | **GPIO25** |
+| KEY2 | 2 | **GPIO33** |
+| KEY3 | 3 | **GPIO32** |
+| KEY4 | 4 | **GPIO35** |
+| KEY5 | 5 | **GPIO13** |
+| KEY6 | 6 | **GPIO14** |
+| KEY7 | 7 | **GPIO27** |
+| KEY8 | 8 | **GPIO26** |
+
+### GPIO35
+
+GPIO35 je vstup-only pin ESP32 a nemá interný pull-up. Pre tlačidlo KEY4 je preto potrebný **externý pull-up na 3.3 V**.
+
+Ostatné tlačidlá používajú príslušné GPIO podľa firmvérovej konfigurácie.
 
 ## 4. Vibračný motorček
 
@@ -60,7 +72,9 @@ MOTOR_PIN = GPIO4
 MOTOR_ACTIVE_LEVEL = HIGH
 ```
 
-Motor je riadený cez pôvodný tranzistorový obvod.
+GPIO4 ovláda externý tranzistorový stupeň. Motor sa teda nepripája priamo na GPIO ESP32.
+
+Motor je aktívny počas prehrávania skladby, ak je pre danú skladbu zapnutá vibrácia.
 
 ## 5. Meranie batérie
 
@@ -71,20 +85,43 @@ Motor je riadený cez pôvodný tranzistorový obvod.
 | R_TOP | **100 kΩ** |
 | R_BOTTOM | **100 kΩ** |
 
+Batériové napätie sa meria cez spínaný odporový delič. GPIO23 slúži na jeho povolenie iba počas merania, aby sa znížil odber batérie.
+
+Firmware používa 12-bit ADC a 11 dB attenuáciu.
+
 ## 6. Prehľad GPIO
 
 | GPIO | Funkcia |
 |---:|---|
 | 4 | vibračný motor |
-| 13 | tlačidlo 1 |
-| 14 | tlačidlo 2 |
+| 13 | tlačidlo 5 |
+| 14 | tlačidlo 6 |
 | 16 | UART RX |
 | 17 | UART TX |
 | 23 | BAT_EN |
-| 25 | tlačidlo 5 |
-| 26 | tlačidlo 4 |
-| 27 | tlačidlo 3 |
-| 32 | tlačidlo 7 |
-| 33 | tlačidlo 6 |
-| 34 | BAT_IN |
-| 35 | tlačidlo 8 |
+| 25 | tlačidlo 1 |
+| 26 | tlačidlo 8 |
+| 27 | tlačidlo 7 |
+| 32 | tlačidlo 3 |
+| 33 | tlačidlo 2 |
+| 34 | BAT_IN / ADC |
+| 35 | tlačidlo 4, input-only |
+
+## 7. Dôležité upozornenie pred výrobou
+
+Tento dokument popisuje **aktuálne GPIO mapovanie podľa `include/config.h`**. Pri zapájaní hardvéru treba použiť práve toto mapovanie.
+
+Najmä poradie tlačidiel je:
+
+```text
+Skladba 1 → GPIO25
+Skladba 2 → GPIO33
+Skladba 3 → GPIO32
+Skladba 4 → GPIO35
+Skladba 5 → GPIO13
+Skladba 6 → GPIO14
+Skladba 7 → GPIO27
+Skladba 8 → GPIO26
+```
+
+Pred výrobou finálnej dosky je potrebné overiť, že KiCad schéma a skutočné zapojenie zodpovedajú tomuto mapovaniu.
