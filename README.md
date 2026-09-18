@@ -1,40 +1,130 @@
 # DY1703A ESP32 Audio Player
 
-Prehrávač zvukov postavený na module **DY1703A** (DY-SV17F), riadený cez **ESP32**.
-Zariadenie je napájané z Li-ion/LiPo batérie a ponúka tri spôsoby ovládania:
+Prehrávač zvukov založený na module **DY1703A / DY-SV17F** a riadený **ESP32 DevKit**. Projekt obsahuje firmvér, KiCad schému a lokálne KiCad knižnice.
 
-- **Fyzické tlačidlá** priamo na zariadení
-- **Web rozhranie** (ESP32 ako WiFi AP alebo klient, jednoduchý webserver)
-- **Bluetooth** (BLE) rozhranie pre ovládanie z mobilu
+> Dokumentácia zodpovedá aktuálnemu obsahu vetvy `main` a bola pripravená na základe revízie `8a4de6d` z 16. 9. 2026.
 
-## Hardvér
+## Funkcie
 
-| Komponent            | Poznámka                                  |
-|-----------------------|--------------------------------------------|
-| ESP32 DevKit          | riadiaca jednotka                          |
-| DY1703A / DY-SV17F     | prehrávanie zvukov, UART mód               |
-| LiPo batéria           | 3.7V                                       |
-| TP4056                | nabíjací modul s ochranou                  |
-| Boost prevodník 5V     | napr. MT3608                               |
-| Reproduktor            | 4-8Ω, do 5W                                |
-| Tlačidlá               | 2x 4-tlačidlová klávesnica = 8 skladieb, každé tlačidlo vlastný GPIO |
-| Vibračný motorček       | 3V DC, spínaný hardvérovo cez BUSY výstup (BC547+BC557), bez zásahu ESP32 |
+- prehrávanie až 8 skladieb,
+- 8 fyzických tlačidiel,
+- webové ovládanie cez Wi-Fi,
+- STA alebo vlastný AP režim,
+- Play / Pauza / Stop,
+- hlasitosť 0–30 a uloženie štartovacej hlasitosti,
+- názvy skladieb,
+- individuálne vibrácie,
+- individuálny LOOP,
+- orientačné meranie batérie,
+- logo PNG/JPG v LittleFS,
+- externý odkaz z loga,
+- heslom chránené nastavenia,
+- záloha/obnova konfigurácie,
+- výrobné nastavenia,
+- automatická verzia + Git SHA + build number,
+- light sleep,
+- servisné Serial príkazy.
 
-Schéma zapojenia: pozri [`docs/wiring.md`](docs/wiring.md).
+## Dôležitá poznámka k Bluetooth
 
-### Nastavenie DY1703A (UART mód)
+V `platformio.ini` je deklarovaná závislosť NimBLE-Arduino, ale aktuálny `src/main.cpp` BLE rozhranie nepoužíva. Starší README uvádzal Bluetooth ako vlastnosť projektu; podľa aktuálneho zdrojového kódu ho preto nemožno považovať za hotovú funkciu.
 
-CON1 → GND, CON2 → GND, CON3 → 5V (odporúčané cez 3.3V výstup modulu alebo cez 10kΩ rezistor).
-V tomto móde IO0 = TXD, IO1 = RXD modulu.
+## Webové rozhranie
 
-> Poznámka: na niektorých kusoch je potlač IO0/IO1 vnútorne prehodená — ak komunikácia
-> nefunguje pri zapojení TX↔RX kríženo, skús TX–TX a RX–RX.
+Nastavenia sú rozdelené na:
 
-## Firmvér
+1. **Logo**
+2. **Zariadenie a Wi-Fi**
+3. **Nastavenie skladieb**
+4. **Údržba**
 
-Firmvér je postavený na **Arduino frameworku cez PlatformIO**.
+Predvolené heslo pre nastavenia je `12345`. Predvolené AP heslo je `password`. Web používa HTTP bez TLS, preto je pri nasadení vhodné predvolené heslá zmeniť.
 
-### Build
+## UART DY1703A
+
+| Funkcia | ESP32 |
+|---|---:|
+| TX → DY RX | GPIO17 |
+| RX ← DY TX | GPIO16 |
+| Baudrate | 9600 |
+| Formát | 8N1 |
+
+Firmware používa rámce začínajúce `0xAA` a podporuje play, pause, stop, previous, next, play track, volume a play state.
+
+## GPIO podľa aktuálneho firmvéru
+
+| Funkcia | GPIO |
+|---|---:|
+| Motor | 4 |
+| Track 1 | 25 |
+| Track 2 | 33 |
+| Track 3 | 32 |
+| Track 4 | 35 |
+| Track 5 | 13 |
+| Track 6 | 14 |
+| Track 7 | 27 |
+| Track 8 | 26 |
+| Battery ADC | 34 |
+| Battery enable | 23 |
+| UART RX | 16 |
+| UART TX | 17 |
+
+> `docs/wiring.md` obsahuje staršie poradie GPIO pre tlačidlá. Pred výrobou treba zosúladiť firmware, schému a skutočnú kabeláž.
+
+## Batéria
+
+Používa sa spínaný odporový delič:
+
+- ADC GPIO34,
+- enable GPIO23,
+- R_TOP 100 kΩ,
+- R_BOTTOM 100 kΩ.
+
+Delič je mimo merania odpojený. Percentá sú lineárny orientačný odhad 3,0–4,2 V.
+
+## KiCad
+
+Projekt je v `docs/kicad/dy1703a/` a obsahuje:
+
+- `dy1703a.kicad_pro`
+- `dy1703a.kicad_sch`
+- `dy1703a.kicad_pcb`
+- `dy1703a.kicad_sym`
+- `dy1703a.pretty/`
+- `LX-LCBST/`
+- `fp-lib-table`
+- `sym-lib-table`
+
+Schéma má titulný blok s názvom **Zapojenie Prehravaca s ESP32 A DY1703A**, dátumom 2026-09-16, revíziou 1.0 a autorom Stefan Polacik.
+
+**PCB je zatiaľ prázdna základná PCB štruktúra; nejde ešte o výrobný návrh.**
+
+## Štruktúra
+
+```text
+dy1703a-esp32-player/
+├── include/
+│   └── config.h
+├── lib/
+│   ├── DY1703A/
+│   └── BatteryMonitor/
+├── src/
+│   └── main.cpp
+├── docs/
+│   ├── architecture.md
+│   ├── hardware.md
+│   ├── software.md
+│   ├── kicad.md
+│   ├── wiring.md
+│   └── kicad/dy1703a/
+├── extra_script.py
+├── platformio.ini
+└── README.md
+```
+
+## Build
+
+V koreňovom adresári:
 
 ```bash
 pio run
@@ -42,10 +132,18 @@ pio run -t upload
 pio device monitor
 ```
 
+Monitor používa 115200 baud, upload 921600 baud.
+
+## Dokumentácia
+
+- [Architektúra firmvéru](docs/architecture.md)
+- [Hardvér a zapojenie](docs/hardware.md)
+- [Webové rozhranie a konfigurácia](docs/software.md)
+- [KiCad projekt](docs/kicad.md)
+- [Pôvodný dokument zapojenia](docs/wiring.md)
+
 ## Stav projektu
 
-Rozpracované — základná kostra firmvéru a HW schéma.
+Firmvér pokrýva základnú funkčnosť prehrávača, Wi-Fi/webové ovládanie, konfiguráciu, logo, batériu, vibrácie, LOOP, light sleep a servisné Serial príkazy.
 
-## Licencia
-
-MIT (uprav podľa potreby).
+Hardvérová časť má aktuálnu KiCad schému a projektové lokálne knižnice. PCB návrh ešte nie je vytvorený.
