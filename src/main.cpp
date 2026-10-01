@@ -503,7 +503,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <div class="batterySide"><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
 </div>
 </div>
-<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title"></span> <span id="version" style="font-size:120%"></span></div></div>
+<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title" style="font-size:120%"></span> <span id="version"></span></div></div>
 <script>
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
@@ -594,7 +594,7 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}.trackUrl{margin-top:8px}.trackLogoRow{display:flex;gap:7px;align-items:center;margin-top:8px}.trackLogoRow input{flex:1}.miniAction{width:auto;padding:9px 10px;border:0;border-radius:8px;background:#ddd}.trackLogoStatus{font-size:12px;color:#666;margin-top:5px}
 .action{width:100%;box-sizing:border-box;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
 .warn{background:#ddd}.msg{text-align:center;min-height:22px;margin-top:10px;font-size:14px}
-a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}.settingsFooter{text-align:center;margin-top:14px;font-size:12px;color:#666}.settingsFooter .version{font-size:120%}
+a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}.settingsFooter{text-align:center;margin-top:14px;font-size:12px;color:#666}.settingsFooter #settingsDevice{font-size:120%}.settingsFooter .version{font-size:100%}
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
 <div class="card">
