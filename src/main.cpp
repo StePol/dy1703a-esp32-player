@@ -586,7 +586,9 @@ h1{font-size:23px;text-align:center}.card{background:#fff;border-radius:14px;pad
 h3{margin:4px 0 12px}.field{margin:11px 0}.field>label{display:block;font-size:14px;font-weight:bold;margin-bottom:5px}
 input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
 .passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:14px;padding:9px 11px}
-.submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px}
+.submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px;position:relative}
+.submenu::after{content:'▶';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px}.submenu.open::after{content:'▼'}
+.commandRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.commandRow .action{font-size:16px;margin-top:0}
 #trackSettings{display:none}.trackFieldRow{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0}.trackTop{display:flex;align-items:center;gap:8px}.trackIdFixed{flex:0 0 34px;text-align:center;font-weight:bold;font-size:16px}.trackName{flex:1;min-width:0}
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}.trackUrl{margin-top:8px}.trackLogoRow{display:flex;gap:7px;align-items:center;margin-top:8px}.trackLogoRow input{flex:1}.miniAction{width:auto;padding:9px 10px;border:0;border-radius:8px;background:#ddd}.trackLogoStatus{font-size:12px;color:#666;margin-top:5px}
 .action{width:100%;box-sizing:border-box;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
@@ -595,7 +597,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
 <div class="card">
-<button class="submenu" type="button" onclick="toggleLogo()">🖼 Logo</button>
+<button class="submenu" id="menuLogo" type="button" onclick="toggleLogo()">🖼 Logo</button>
 <div id="logoSettings" style="display:none">
 <div class="field"><label>Vlastné logo (PNG/JPG, max. 300 kB)</label><input class="file" id="logoFile" type="file" accept="image/png,image/jpeg"></div>
 <button class="action" type="button" onclick="uploadLogo()">⬆ Nahrať logo</button>
@@ -603,7 +605,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="field"><label>Externý odkaz po kliknutí na logo</label><input id="logourl" type="url" maxlength="200" placeholder="https://moja-stranka.sk"></div>
 <div class="small" id="logoStatus"></div>
 </div>
-<button class="submenu" type="button" onclick="toggleDevice()">⚙ Zariadenie a Wi-Fi</button>
+<button class="submenu" id="menuDevice" type="button" onclick="toggleDevice()">⚙ Zariadenie a Wi-Fi</button>
 <div id="deviceSettings" style="display:none">
 <div class="field"><label>Názov zariadenia</label><input id="device" maxlength="32"></div>
 <div class="field"><label>SSID zariadenia (AP)</label><input id="apssid" maxlength="32"></div>
@@ -611,9 +613,9 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <div class="field"><label>Domáca Wi-Fi SSID</label><input id="ssid" maxlength="64"></div>
 <div class="field"><label>Domáca Wi-Fi heslo</label><div class="passwordRow"><input id="wpass" type="password" maxlength="64"><button class="showPass" type="button" onclick="toggle('wpass',this)">👁</button></div></div>
 </div>
-<button class="submenu" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
+<button class="submenu" id="menuTracks" type="button" onclick="toggleTracks()">🎵 Nastavenie skladieb</button>
 <div id="trackSettings"><div id="trackFields"></div></div>
-<button class="submenu" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
+<button class="submenu" id="menuMaintenance" type="button" onclick="toggleMaintenance()">🛠 Údržba</button>
 <div id="maintenanceSettings" style="display:none"><div class="field"><label>Heslo pre vstup do nastavení</label><div class="passwordRow"><input id="setpass" type="password" maxlength="32"><button class="showPass" type="button" onclick="toggle('setpass',this)">👁</button></div></div>
 <button class="action" type="button" onclick="backupConfig()">⬇ Zápis konfigurácie</button>
 <input class="file" id="restore" type="file" accept=".txt,.cfg,.conf">
@@ -621,8 +623,8 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 <button class="action warn" onclick="defaults()">↺ Obnovenie výrobných nastavení</button>
 <div class="msg" id="msg"></div>
 </div>
-<button class="action" onclick="saveSettings()">💾 Uložiť a reštart</button>
-<button class="action" onclick="location.href='/'">↩ Návrat bez uloženia</button>
+<div class="commandRow"><button class="action" onclick="saveSettings()">💾 Uložiť a reštart</button>
+<button class="action" onclick="location.href='/'">↩ Návrat bez uloženia</button></div>
 </div>
 <script>
 const tf=document.getElementById('trackFields');
@@ -632,10 +634,11 @@ for(let i=1;i<=8;i++){
  tf.appendChild(row);
 }
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
-function toggleLogo(){let e=document.getElementById('logoSettings');e.style.display=e.style.display==='block'?'none':'block'}
-function toggleDevice(){let e=document.getElementById('deviceSettings');e.style.display=e.style.display==='block'?'none':'block'}
-function toggleTracks(){let e=document.getElementById('trackSettings');e.style.display=e.style.display==='block'?'none':'block'}
-function toggleMaintenance(){let e=document.getElementById('maintenanceSettings');e.style.display=e.style.display==='block'?'none':'block'}
+function toggleSection(sectionId,buttonId){let e=document.getElementById(sectionId),b=document.getElementById(buttonId);let open=e.style.display!=='block';e.style.display=open?'block':'none';b.classList.toggle('open',open)}
+function toggleLogo(){toggleSection('logoSettings','menuLogo')}
+function toggleDevice(){toggleSection('deviceSettings','menuDevice')}
+function toggleTracks(){toggleSection('trackSettings','menuTracks')}
+function toggleMaintenance(){toggleSection('maintenanceSettings','menuMaintenance')}
 function backupConfig(){window.location.href='/api/backup'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
 document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
