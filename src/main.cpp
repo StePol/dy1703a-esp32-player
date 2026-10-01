@@ -503,7 +503,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <div class="batterySide"><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
 </div>
 </div>
-<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title"></span> <span id="version"></span></div></div>
+<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title"></span> <span id="version" style="font-size:120%"></span></div></div>
 <script>
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
@@ -590,11 +590,11 @@ input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border
 .submenu::after{content:'▶';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px}.submenu.open{background:#c8c8c8;border-radius:10px 10px 4px 4px;border-bottom:2px solid #999}.submenu.open::after{content:'▼'}
 #logoSettings,#deviceSettings,#trackSettings,#maintenanceSettings{background:#f7f7f7;border:1px solid #d0d0d0;border-top:0;border-radius:0 0 10px 10px;padding:10px 12px 12px;margin:0 4px 10px}
 .commandRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.commandRow .action{font-size:16px;font-weight:bold;margin-top:0}
-#trackSettings{display:none}.trackFieldRow{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0}.trackTop{display:flex;align-items:center;gap:8px}.trackIdFixed{flex:0 0 34px;text-align:center;font-weight:bold;font-size:16px}.trackLogoStatus.yes{color:#16823b;font-weight:bold}.trackLogoStatus.no{color:#c62828;font-weight:bold}.trackName{flex:1;min-width:0}
+#trackSettings{display:none}.trackFieldRow{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0}.trackTop{display:flex;align-items:center;gap:8px}.trackIdFixed{flex:0 0 34px;text-align:center;font-weight:bold;font-size:16px}#logoStatus.yes,.trackLogoStatus.yes{color:#16823b;font-weight:bold}#logoStatus.no,.trackLogoStatus.no{color:#c62828;font-weight:bold}.trackName{flex:1;min-width:0}
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}.trackUrl{margin-top:8px}.trackLogoRow{display:flex;gap:7px;align-items:center;margin-top:8px}.trackLogoRow input{flex:1}.miniAction{width:auto;padding:9px 10px;border:0;border-radius:8px;background:#ddd}.trackLogoStatus{font-size:12px;color:#666;margin-top:5px}
 .action{width:100%;box-sizing:border-box;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
 .warn{background:#ddd}.msg{text-align:center;min-height:22px;margin-top:10px;font-size:14px}
-a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
+a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}.settingsFooter{text-align:center;margin-top:14px;font-size:12px;color:#666}.settingsFooter .version{font-size:120%}
 </style></head><body>
 <h1>⚙ Nastavenia</h1>
 <div class="card">
@@ -626,6 +626,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 </div>
 <div class="commandRow"><button class="action" onclick="saveSettings()">💾 Uložiť a reštart</button>
 <button class="action" onclick="location.href='/'">↩ Návrat bez uloženia</button></div>
+<div class="settingsFooter"><span id="settingsDevice"></span> <span class="version" id="settingsVersion"></span></div>
 </div>
 <script>
 const tf=document.getElementById('trackFields');
@@ -642,7 +643,7 @@ function toggleTracks(){toggleSection('trackSettings','menuTracks')}
 function toggleMaintenance(){toggleSection('maintenanceSettings','menuMaintenance')}
 function backupConfig(){window.location.href='/api/backup'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
-document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
+document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('settingsDevice').textContent=s.device;document.getElementById('settingsVersion').textContent='v'+s.version+' · '+s.git;let mainLs=document.getElementById('logoStatus');mainLs.textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';mainLs.classList.toggle('yes',!!s.logo);mainLs.classList.toggle('no',!s.logo);
 for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1];document.getElementById('tl'+i).checked=!!s.loop[i-1];document.getElementById('tu'+i).value=(s.links&&s.links[i-1])||'';let ls=document.getElementById('tls'+i),hasLogo=!!(s.trackLogos&&s.trackLogos[i-1]);ls.textContent=hasLogo?'Logo je nahraté.':'Logo nie je nahraté.';ls.classList.toggle('yes',hasLogo);ls.classList.toggle('no',!hasLogo)}}
 async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}
 async function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}
@@ -683,7 +684,7 @@ load();
             loopJson += loopEnabled[i] ? "true" : "false";
         }
         tracksJson+="]";linksJson+="]";logosJson+="]";vibJson+="]";loopJson+="]";
-        String json="{\"device\":\"" + jsonEscape(deviceName) +
+        String json="{\"version\":\"" BUILD_VERSION "\",\"git\":\"" BUILD_GIT_SHA "\",\"device\":\"" + jsonEscape(deviceName) +
                     "\",\"apssid\":\"" + jsonEscape(apSsid) +
                     "\",\"appass\":\"" + jsonEscape(apPassword) +
                     "\",\"ssid\":\"" + jsonEscape(staSsid) +
