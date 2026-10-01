@@ -487,18 +487,19 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
 <div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
-<h1><span id="title"></span><span id="version"></span></h1>
-<div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
 <div class="trackList" id="tracks"></div>
-<div class="card"><h3>Ovládanie</h3><div class="playbar">
+<div class="card">
+<div class="status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
+<div class="playbar" style="margin-top:10px">
 <button onclick="cmd('/api/play')">▶ Play</button><button onclick="cmd('/api/pause')">⏸ Pauza</button><button onclick="cmd('/api/stop')">■ Stop</button>
-</div></div>
-<div class="card"><h3>Hlasitosť</h3><div class="controls">
+</div>
+<div class="controls" style="margin-top:10px">
 <button onclick="volume(-1)">−</button><input id="vol" type="range" min="0" max="30" value="20" oninput="volumeSet(this.value)">
 <button onclick="volume(1)">+</button><button class="setvol" onclick="saveVolume()">SET</button>
-</div><div class="small" id="volText">20</div></div>
-<div class="card"><h3>Batéria</h3><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
-<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button></div>
+</div><div class="small" id="volText">20</div>
+<div class="battery" style="margin-top:10px"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div>
+</div>
+<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title"></span> <span id="version"></span></div></div>
 <script>
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
