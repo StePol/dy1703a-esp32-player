@@ -517,7 +517,7 @@ async function volumeSet(v){v=Math.max(0,Math.min(30,Number(v)));document.getEle
 async function saveVolume(){let v=document.getElementById('vol').value;try{let r=await fetch('/api/volume/set?value='+v);document.getElementById('volText').textContent=await r.text();setTimeout(update,500)}catch(e){}}
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
 document.getElementById('title').textContent=s.device;document.getElementById('version').textContent='v'+s.version+' · '+s.git;
-if(s.logo){document.getElementById('logoWrap').style.display='block';document.getElementById('logo').src='/logo?'+Date.now();document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
+if(s.logo){document.getElementById('logoWrap').style.display='block';let logo=document.getElementById('logo');if(!logo.src.includes('/logo'))logo.src='/logo';document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
 document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');
 document.getElementById('playBtn').classList.toggle('stateActive',!!s.playing);
 document.getElementById('pauseBtn').classList.remove('stateActive');
@@ -525,7 +525,7 @@ document.getElementById('stopBtn').classList.toggle('stateActive',!s.playing);
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
 if(document.activeElement.id!=='vol')document.getElementById('volText').textContent=s.volume;
 document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';
-if(s.names)for(let i=1;i<=8;i++){document.getElementById('tidmain'+i).textContent=i;document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).innerHTML='<span>'+(s.loop&&s.loop[i-1]?'🔁':'')+'</span><span>'+(s.vibration&&s.vibration[i-1]?'📳':'')+'</span>';document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i);let area=document.getElementById('timg'+i);let hasLogo=s.trackLogos&&s.trackLogos[i-1];let link=(s.links&&s.links[i-1])||'';area.innerHTML=hasLogo?'<img src="/track-logo?track='+i+'&v='+Date.now()+'" alt="">':'<span class="trackPlaceholder">Bez loga</span>';area.classList.toggle('link',!!link);area.onclick=link?()=>window.open(link,'_blank','noopener,noreferrer'):null;}
+if(s.names)for(let i=1;i<=8;i++){document.getElementById('tidmain'+i).textContent=i;document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).innerHTML='<span>'+(s.loop&&s.loop[i-1]?'🔁':'')+'</span><span>'+(s.vibration&&s.vibration[i-1]?'📳':'')+'</span>';document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i);let area=document.getElementById('timg'+i);let hasLogo=s.trackLogos&&s.trackLogos[i-1];let link=(s.links&&s.links[i-1])||'';let img=area.querySelector('img');if(hasLogo){if(!img){area.innerHTML='<img src="/track-logo?track='+i+'" alt="">';}}else if(img||!area.querySelector('.trackPlaceholder')){area.innerHTML='<span class="trackPlaceholder">Bez loga</span>';}area.classList.toggle('link',!!link);area.onclick=link?()=>window.open(link,'_blank','noopener,noreferrer'):null;}
 }catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
