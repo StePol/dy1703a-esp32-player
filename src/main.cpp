@@ -478,8 +478,10 @@ h3{margin:0 0 12px}.trackList{display:grid;grid-template-columns:repeat(2,minmax
 @media(max-width:380px){.trackList{gap:7px}.trackImage{height:105px}.trackHead{font-size:13px;padding:7px 5px}.trackIcons{grid-template-columns:18px 18px;width:38px;min-width:38px}}
 button{font-size:19px;padding:16px 10px;border:0;border-radius:12px;background:#ddd;cursor:pointer}
 button:active{transform:scale(.98)}.active{outline:4px solid #555}
-.playbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.playbar button{padding:14px 5px}
-.controls{display:flex;gap:9px;align-items:center}.controls button{flex:0 0 58px;padding:12px}.controls input{flex:1}
+.playbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.playbar button{padding:14px 5px}.playbar button.stateActive{outline:4px solid #555;background:#bbb;font-weight:bold}
+.volumeBatteryRow{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center;margin-top:10px}.volumeSide,.batterySide{min-width:0}
+.controls{display:flex;gap:7px;align-items:center}.controls button{flex:0 0 48px;padding:12px 5px}.controls input{flex:1;min-width:0}
+@media(max-width:430px){.volumeBatteryRow{gap:8px}.controls button{flex-basis:40px;font-size:16px}.setvol{flex-basis:48px!important;font-size:13px!important}}
 .setvol{flex:0 0 64px!important;font-size:15px!important;padding:12px 5px!important}
 .status{text-align:center;font-size:17px}.small{text-align:center;color:#666;font-size:14px;margin-top:7px}
 .battery{height:18px;background:#ddd;border-radius:10px;overflow:hidden}.bar{height:100%;width:0;background:#555}
@@ -489,15 +491,17 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
 <div class="trackList" id="tracks"></div>
 <div class="card">
-<div class="status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
+<div class="status"><div id="track">Skladba: --</div></div>
 <div class="playbar" style="margin-top:10px">
-<button onclick="cmd('/api/play')">▶ Play</button><button onclick="cmd('/api/pause')">⏸ Pauza</button><button onclick="cmd('/api/stop')">■ Stop</button>
+<button id="playBtn" onclick="cmd('/api/play')">▶ Play</button><button id="pauseBtn" onclick="cmd('/api/pause')">⏸ Pauza</button><button id="stopBtn" onclick="cmd('/api/stop')">■ Stop</button>
 </div>
-<div class="controls" style="margin-top:10px">
+<div class="volumeBatteryRow">
+<div class="volumeSide"><div class="controls">
 <button onclick="volume(-1)">−</button><input id="vol" type="range" min="0" max="30" value="20" oninput="volumeSet(this.value)">
 <button onclick="volume(1)">+</button><button class="setvol" onclick="saveVolume()">SET</button>
-</div><div class="small" id="volText">20</div>
-<div class="battery" style="margin-top:10px"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div>
+</div><div class="small" id="volText">20</div></div>
+<div class="batterySide"><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
+</div>
 </div>
 <div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title"></span> <span id="version"></span></div></div>
 <script>
@@ -514,8 +518,10 @@ async function saveVolume(){let v=document.getElementById('vol').value;try{let r
 async function update(){try{let r=await fetch('/api/status',{cache:'no-store'}),s=await r.json();
 document.getElementById('title').textContent=s.device;document.getElementById('version').textContent='v'+s.version+' · '+s.git;
 if(s.logo){document.getElementById('logoWrap').style.display='block';document.getElementById('logo').src='/logo?'+Date.now();document.getElementById('logoLink').href=s.logoUrl||'#';document.getElementById('logoLink').style.pointerEvents=s.logoUrl?'auto':'none'}else document.getElementById('logoWrap').style.display='none';
-document.getElementById('state').textContent='Stav: '+(s.playing?'▶ PREHRÁVA SA':'■ STOP');
 document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—');
+document.getElementById('playBtn').classList.toggle('stateActive',!!s.playing);
+document.getElementById('pauseBtn').classList.remove('stateActive');
+document.getElementById('stopBtn').classList.toggle('stateActive',!s.playing);
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
 if(document.activeElement.id!=='vol')document.getElementById('volText').textContent=s.volume;
 document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';
