@@ -586,8 +586,9 @@ h1{font-size:23px;text-align:center}.card{background:#fff;border-radius:14px;pad
 h3{margin:4px 0 12px}.field{margin:11px 0}.field>label{display:block;font-size:14px;font-weight:bold;margin-bottom:5px}
 input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
 .passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:14px;padding:9px 11px}
-.submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px;position:relative}
-.submenu::after{content:'▶';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px}.submenu.open::after{content:'▼'}
+.submenu{width:100%;font-size:16px;font-weight:bold;background:#d8d8d8;padding:13px 12px;margin-top:12px;text-align:center;border:1px solid #b8b8b8;border-radius:10px;position:relative;box-shadow:0 1px 3px #0002}
+.submenu::after{content:'▶';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:13px}.submenu.open{background:#c8c8c8;border-radius:10px 10px 4px 4px;border-bottom:2px solid #999}.submenu.open::after{content:'▼'}
+#logoSettings,#deviceSettings,#trackSettings,#maintenanceSettings{background:#f7f7f7;border:1px solid #d0d0d0;border-top:0;border-radius:0 0 10px 10px;padding:10px 12px 12px;margin:0 4px 10px}
 .commandRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.commandRow .action{font-size:16px;margin-top:0}
 #trackSettings{display:none}.trackFieldRow{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0}.trackTop{display:flex;align-items:center;gap:8px}.trackIdFixed{flex:0 0 34px;text-align:center;font-weight:bold;font-size:16px}.trackName{flex:1;min-width:0}
 .trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}.trackUrl{margin-top:8px}.trackLogoRow{display:flex;gap:7px;align-items:center;margin-top:8px}.trackLogoRow input{flex:1}.miniAction{width:auto;padding:9px 10px;border:0;border-radius:8px;background:#ddd}.trackLogoStatus{font-size:12px;color:#666;margin-top:5px}
