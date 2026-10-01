@@ -47,6 +47,8 @@ String settingsPassword;
 String logoUrl;
 bool logoExists = false;
 String trackNames[8];
+String trackLinks[8];
+bool trackLogoExists[8];
 bool vibrationEnabled[8];
 bool loopEnabled[8];
 
@@ -61,6 +63,11 @@ const char *DEFAULT_AP_PASSWORD = WIFI_AP_PASS;
 const char *DEFAULT_SETTINGS_PASSWORD = "12345";
 const char *LOGO_PATH = "/logo";
 const size_t MAX_LOGO_SIZE = 300 * 1024;
+const size_t MAX_TRACK_LOGO_SIZE = 300 * 1024;
+
+String trackLogoPath(uint8_t track) {
+    return "/track" + String(track) + ".logo";
+}
 
 bool isInputOnlyPin(uint8_t pin) {
     for (uint8_t p : INPUT_ONLY_PINS) if (p == pin) return true;
@@ -176,6 +183,10 @@ void loadSettings() {
         vibrationEnabled[i] = preferences.getBool(vkey, false);
         char lkey[8]; snprintf(lkey, sizeof(lkey), "lop%u", i + 1);
         loopEnabled[i] = preferences.getBool(lkey, false);
+        char ukey[8]; snprintf(ukey, sizeof(ukey), "url%u", i + 1);
+        trackLinks[i] = preferences.getString(ukey, "");
+        if (trackLinks[i].length() > 200) trackLinks[i] = trackLinks[i].substring(0, 200);
+        trackLogoExists[i] = LittleFS.exists(trackLogoPath(i + 1));
     }
 
     Serial.printf("Nastavenia: zariadenie='%s', AP SSID='%s', STA SSID='%s', hlasitost=%u\n",
@@ -236,6 +247,11 @@ void resetToDefaults() {
         defaults[i] = "Skladba " + String(i + 1);
         noVibration[i] = false;
         noLoop[i] = false;
+        trackLinks[i] = "";
+        preferences.remove(("url" + String(i + 1)).c_str());
+        String lp = trackLogoPath(i + 1);
+        if (LittleFS.exists(lp)) LittleFS.remove(lp);
+        trackLogoExists[i] = false;
     }
     saveSettings(DEFAULT_DEVICE, DEFAULT_AP_SSID, DEFAULT_AP_PASSWORD,
                  "", "", DEFAULT_SETTINGS_PASSWORD, 20, defaults, noVibration, noLoop);
@@ -283,6 +299,7 @@ String makeBackup() {
         out += "trk" + String(i + 1) + "=" + trackNames[i] + "\n";
         out += "vib" + String(i + 1) + "=" + String(vibrationEnabled[i] ? 1 : 0) + "\n";
         out += "lop" + String(i + 1) + "=" + String(loopEnabled[i] ? 1 : 0) + "\n";
+        out += "url" + String(i + 1) + "=" + trackLinks[i] + "\n";
     }
     return out;
 }
@@ -294,12 +311,14 @@ bool parseBackup(const String &data) {
     String newTrackNames[8];
     bool newVibration[8];
     bool newLoop[8];
+    String newTrackLinks[8];
     int newVolume = 20;
 
     for (uint8_t i = 0; i < 8; i++) {
         newTrackNames[i] = "Skladba " + String(i + 1);
         newVibration[i] = false;
         newLoop[i] = false;
+        newTrackLinks[i] = "";
     }
 
     int start = 0;
@@ -332,6 +351,9 @@ bool parseBackup(const String &data) {
         } else if (key.startsWith("lop")) {
             int n = key.substring(3).toInt();
             if (n >= 1 && n <= 8) newLoop[n - 1] = value.toInt() != 0;
+        } else if (key.startsWith("url")) {
+            int n = key.substring(3).toInt();
+            if (n >= 1 && n <= 8) newTrackLinks[n - 1] = value;
         }
     }
 
@@ -345,6 +367,13 @@ bool parseBackup(const String &data) {
     saveSettings(newDevice, newApSsid, newApPassword, newStaSsid,
                  newStaPassword, newSettingsPassword, (uint8_t)newVolume,
                  newTrackNames, newVibration, newLoop);
+    for (uint8_t i = 0; i < 8; i++) {
+        newTrackLinks[i].trim();
+        if (newTrackLinks[i].length() > 200) newTrackLinks[i] = newTrackLinks[i].substring(0, 200);
+        if (newTrackLinks[i].length() && !(newTrackLinks[i].startsWith("http://") || newTrackLinks[i].startsWith("https://"))) newTrackLinks[i] = "";
+        trackLinks[i] = newTrackLinks[i];
+        preferences.putString(("url" + String(i + 1)).c_str(), trackLinks[i]);
+    }
     player.setVolume(currentVolume);
     return true;
 }
@@ -440,7 +469,13 @@ void setupWebServer() {
 <style>
 body{font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:12px;background:#f4f4f4;color:#222}
 h1{text-align:center;font-size:24px;margin:8px 0 14px}#version{font-size:50%;font-weight:normal;color:#777;margin-left:8px;white-space:nowrap}.card{background:#fff;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 8px #0001}
-h3{margin:0 0 12px}.trackList{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+h3{margin:0 0 12px}.trackList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.trackCard{background:#fff;border:1px solid #ccc;border-radius:12px;overflow:hidden;min-width:0;box-shadow:0 1px 4px #0001}
+.trackHead{width:100%;border:0;border-radius:0;padding:9px 8px;background:#ddd;display:flex;align-items:center;text-align:left;font-size:15px;min-height:40px}
+.trackIcons{display:inline-grid;grid-template-columns:22px 22px;width:46px;min-width:46px}.trackNameMain{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trackImage{height:128px;display:flex;align-items:center;justify-content:center;background:#fafafa;cursor:default}
+.trackImage.link{cursor:pointer}.trackImage img{width:100%;height:100%;object-fit:contain;display:block}.trackPlaceholder{color:#999;font-size:14px;text-align:center;padding:10px}
+@media(max-width:380px){.trackList{gap:7px}.trackImage{height:105px}.trackHead{font-size:13px;padding:7px 5px}.trackIcons{grid-template-columns:18px 18px;width:38px;min-width:38px}}
 button{font-size:19px;padding:16px 10px;border:0;border-radius:12px;background:#ddd;cursor:pointer}
 button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .playbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.playbar button{padding:14px 5px}
@@ -449,13 +484,12 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 .status{text-align:center;font-size:17px}.small{text-align:center;color:#666;font-size:14px;margin-top:7px}
 .battery{height:18px;background:#ddd;border-radius:10px;overflow:hidden}.bar{height:100%;width:0;background:#555}
 .settingsBtn{width:100%;font-size:17px;background:#eee;padding:12px;margin-top:4px}
- .trackBtn{width:94%;align-self:center;font-size:17px;padding:9px 12px;text-align:left}.trackIcon{display:inline-grid;grid-template-columns:24px 24px;align-items:center;width:52px;min-width:52px;white-space:nowrap}.trackIcon::first-letter{display:inline-block}.trackNameMain{display:inline-block;vertical-align:middle}
 .msg{text-align:center;margin-top:10px;min-height:20px;font-size:14px}
 </style></head><body>
 <div id="logoWrap" style="display:none;text-align:center;margin:4px 0 12px"><a id="logoLink" target="_blank" rel="noopener noreferrer"><img id="logo" src="/logo" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:10px"></a></div>
 <h1><span id="title"></span><span id="version"></span></h1>
 <div class="card status"><div id="state">Stav: --</div><div id="track">Skladba: --</div></div>
-<div class="card"><h3>Skladby</h3><div class="trackList" id="tracks"></div></div>
+<div class="trackList" id="tracks"></div>
 <div class="card"><h3>Ovládanie</h3><div class="playbar">
 <button onclick="cmd('/api/play')">▶ Play</button><button onclick="cmd('/api/pause')">⏸ Pauza</button><button onclick="cmd('/api/stop')">■ Stop</button>
 </div></div>
@@ -468,9 +502,10 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <script>
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
- let b=document.createElement('button');b.className='trackBtn';
- b.innerHTML='<span class="trackIcon" id="ti'+i+'">◻</span><span class="trackNameMain" id="tnmain'+i+'">Skladba '+i+'</span>';
- b.onclick=()=>cmd('/api/play?track='+i);b.id='t'+i;tracks.appendChild(b);
+ let card=document.createElement('div');card.className='trackCard';card.id='t'+i;
+ card.innerHTML='<button class="trackHead" id="th'+i+'"><span class="trackIcons" id="ti'+i+'"></span><span class="trackNameMain" id="tnmain'+i+'">Skladba '+i+'</span></button><div class="trackImage" id="timg'+i+'"><span class="trackPlaceholder">Bez loga</span></div>';
+ card.querySelector('#th'+i).onclick=()=>cmd('/api/play?track='+i);
+ tracks.appendChild(card);
 }
 async function cmd(u){try{await fetch(u);update()}catch(e){}}
 async function volumeSet(v){v=Math.max(0,Math.min(30,Number(v)));document.getElementById('vol').value=v;document.getElementById('volText').textContent=v;try{await fetch('/api/volume?value='+v)}catch(e){}} async function volume(d){let v=Number(document.getElementById('vol').value)+d;await volumeSet(v)}
@@ -483,7 +518,7 @@ document.getElementById('track').textContent='Skladba: '+(s.track?s.track:'—')
 if(document.activeElement.id!=='vol'){document.getElementById('vol').value=s.volume}
 if(document.activeElement.id!=='vol')document.getElementById('volText').textContent=s.volume;
 document.getElementById('bar').style.width=s.battery+'%';document.getElementById('bat').textContent=s.battery+' % · '+s.voltage+' mV';
-if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).innerHTML='<span>'+(s.loop&&s.loop[i-1]?'🔁':'')+'</span><span>'+(s.vibration&&s.vibration[i-1]?'📳':'')+'</span>';document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i)}
+if(s.names)for(let i=1;i<=8;i++){document.getElementById('tnmain'+i).textContent=s.names[i-1];document.getElementById('ti'+i).innerHTML='<span>'+(s.loop&&s.loop[i-1]?'🔁':'')+'</span><span>'+(s.vibration&&s.vibration[i-1]?'📳':'')+'</span>';document.getElementById('t'+i).classList.toggle('active',s.playing&&s.track===i);let area=document.getElementById('timg'+i);let hasLogo=s.trackLogos&&s.trackLogos[i-1];let link=(s.links&&s.links[i-1])||'';area.innerHTML=hasLogo?'<img src="/track-logo?track='+i+'&v='+Date.now()+'" alt="">':'<span class="trackPlaceholder">Bez loga</span>';area.classList.toggle('link',!!link);area.onclick=link?()=>window.open(link,'_blank','noopener,noreferrer'):null;}
 }catch(e){}}
 update();setInterval(update,1000);
 </script></body></html>)HTML";
@@ -545,8 +580,8 @@ h3{margin:4px 0 12px}.field{margin:11px 0}.field>label{display:block;font-size:1
 input{box-sizing:border-box;width:100%;padding:11px;border:1px solid #bbb;border-radius:9px;font-size:16px}
 .passwordRow{display:flex;gap:7px}.passwordRow input{flex:1}.showPass{flex:0 0 auto;font-size:14px;padding:9px 11px}
 .submenu{width:100%;font-size:16px;font-weight:bold;background:#eee;padding:12px;margin-top:8px;text-align:center;border:0;border-radius:9px}
-#trackSettings{display:none}.trackFieldRow{display:flex;align-items:center;gap:8px;margin:8px 0}.trackName{flex:1;min-width:0}
-.trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}
+#trackSettings{display:none}.trackFieldRow{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0}.trackTop{display:flex;align-items:center;gap:8px}.trackName{flex:1;min-width:0}
+.trackOption{display:flex;align-items:center;gap:5px}.trackOption input{width:20px;height:20px}.trackUrl{margin-top:8px}.trackLogoRow{display:flex;gap:7px;align-items:center;margin-top:8px}.trackLogoRow input{flex:1}.miniAction{width:auto;padding:9px 10px;border:0;border-radius:8px;background:#ddd}.trackLogoStatus{font-size:12px;color:#666;margin-top:5px}
 .action{width:100%;box-sizing:border-box;padding:12px;border:0;border-radius:9px;background:#ddd;font-size:16px;margin-top:7px}
 .warn{background:#ddd}.msg{text-align:center;min-height:22px;margin-top:10px;font-size:14px}
 a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px}
@@ -586,7 +621,7 @@ a{display:block;text-align:center;margin:12px 0;color:#333}.file{margin-top:10px
 const tf=document.getElementById('trackFields');
 for(let i=1;i<=8;i++){
  let row=document.createElement('div');row.className='trackFieldRow';
- row.innerHTML='<input class="trackName" id="tn'+i+'" maxlength="40" placeholder="Skladba '+i+'"><div class="trackOption"><input type="checkbox" id="tv'+i+'"><label for="tv'+i+'">📳</label></div><div class="trackOption"><input type="checkbox" id="tl'+i+'"><label for="tl'+i+'">LOOP</label></div>';
+ row.innerHTML='<div class="trackTop"><input class="trackName" id="tn'+i+'" maxlength="40" placeholder="Skladba '+i+'"><div class="trackOption"><input type="checkbox" id="tv'+i+'"><label for="tv'+i+'">📳</label></div><div class="trackOption"><input type="checkbox" id="tl'+i+'"><label for="tl'+i+'">LOOP</label></div></div><input class="trackUrl" id="tu'+i+'" type="url" maxlength="200" placeholder="Odkaz: https://..."><div class="trackLogoRow"><input class="file" id="tlf'+i+'" type="file" accept="image/png,image/jpeg"><button class="miniAction" type="button" onclick="uploadTrackLogo('+i+')">⬆ Logo</button><button class="miniAction" type="button" onclick="deleteTrackLogo('+i+')">🗑</button></div><div class="trackLogoStatus" id="tls'+i+'">Logo: --</div>';
  tf.appendChild(row);
 }
 function toggle(id,b){let e=document.getElementById(id);e.type=e.type==='password'?'text':'password';b.textContent=e.type==='password'?'👁':'🙈'}
@@ -597,11 +632,13 @@ function toggleMaintenance(){let e=document.getElementById('maintenanceSettings'
 function backupConfig(){window.location.href='/api/backup'}
 async function load(){let r=await fetch('/api/settings',{cache:'no-store'});if(!r.ok){location.href='/settings-login';return}let s=await r.json();
 document.getElementById('device').value=s.device;document.getElementById('apssid').value=s.apssid;document.getElementById('appass').value=s.appass;document.getElementById('ssid').value=s.ssid;document.getElementById('wpass').value=s.wpass;document.getElementById('setpass').value=s.setpass;document.getElementById('logourl').value=s.logoUrl||'';document.getElementById('logoStatus').textContent=s.logo?'Logo je nahraté.':'Logo nie je nahraté.';
-for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1];document.getElementById('tl'+i).checked=!!s.loop[i-1]}}
+for(let i=1;i<=8;i++){document.getElementById('tn'+i).value=s.tracks[i-1];document.getElementById('tv'+i).checked=!!s.vibration[i-1];document.getElementById('tl'+i).checked=!!s.loop[i-1];document.getElementById('tu'+i).value=(s.links&&s.links[i-1])||'';document.getElementById('tls'+i).textContent=(s.trackLogos&&s.trackLogos[i-1])?'Logo je nahraté.':'Logo nie je nahraté.'}}
 async function uploadLogo(){let f=document.getElementById('logoFile').files[0];if(!f){document.getElementById('logoStatus').textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('logoStatus').textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('logoStatus').textContent='Nahrávam...';let r=await fetch('/api/logo',{method:'POST',body:fd});document.getElementById('logoStatus').textContent=await r.text();if(r.ok){document.getElementById('logoFile').value='';load()}}
 async function deleteLogo(){if(!confirm('Odstrániť logo?'))return;let r=await fetch('/api/logo',{method:'DELETE'});document.getElementById('logoStatus').textContent=await r.text();if(r.ok)load()}
+async function uploadTrackLogo(i){let f=document.getElementById('tlf'+i).files[0];if(!f){document.getElementById('tls'+i).textContent='Vyberte PNG alebo JPG.';return}if(f.size>300*1024){document.getElementById('tls'+i).textContent='Logo je príliš veľké (max. 300 kB).';return}let fd=new FormData();fd.append('logo',f,f.name);document.getElementById('tls'+i).textContent='Nahrávam...';let r=await fetch('/api/track-logo?track='+i,{method:'POST',body:fd});document.getElementById('tls'+i).textContent=await r.text();if(r.ok){document.getElementById('tlf'+i).value='';load()}}
+async function deleteTrackLogo(i){if(!confirm('Odstrániť logo skladby '+i+'?'))return;let r=await fetch('/api/track-logo?track='+i,{method:'DELETE'});document.getElementById('tls'+i).textContent=await r.text();if(r.ok)load()}
 async function saveSettings(){let p=new URLSearchParams();p.append('device',document.getElementById('device').value);p.append('apssid',document.getElementById('apssid').value);p.append('appass',document.getElementById('appass').value);p.append('ssid',document.getElementById('ssid').value);p.append('wpass',document.getElementById('wpass').value);p.append('setpass',document.getElementById('setpass').value);p.append('logourl',document.getElementById('logourl').value);
-for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1');if(document.getElementById('tl'+i).checked)p.append('lop'+i,'1')}
+for(let i=1;i<=8;i++){p.append('track'+i,document.getElementById('tn'+i).value);p.append('url'+i,document.getElementById('tu'+i).value);if(document.getElementById('tv'+i).checked)p.append('vib'+i,'1');if(document.getElementById('tl'+i).checked)p.append('lop'+i,'1')}
 let b=document.querySelector('.action');b.disabled=true;document.getElementById('msg').textContent='Ukladám...';
 try{let r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}catch(e){b.disabled=false;document.getElementById('msg').textContent='Chyba komunikácie'}}
 async function defaults(){if(!confirm('Naozaj obnoviť výrobné nastavenie? Vymaže sa aj Wi-Fi STA a názvy skladieb.'))return;let r=await fetch('/api/defaults',{method:'POST'});document.getElementById('msg').textContent=await r.text();if(r.ok)setTimeout(()=>location.href='/',3000)}
@@ -625,14 +662,16 @@ load();
 
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
-        String tracksJson="[", vibJson="[", loopJson="[";
+        String tracksJson="[", linksJson="[", logosJson="[", vibJson="[", loopJson="[";
         for (uint8_t i=0;i<8;i++) {
-            if(i){tracksJson+=",";vibJson+=",";loopJson+=",";}
+            if(i){tracksJson+=",";linksJson+=",";logosJson+=",";vibJson+=",";loopJson+=",";}
             tracksJson+="\"" + jsonEscape(trackNames[i]) + "\"";
+            linksJson+="\"" + jsonEscape(trackLinks[i]) + "\"";
+            logosJson+=trackLogoExists[i] ? "true" : "false";
             vibJson += vibrationEnabled[i] ? "true" : "false";
             loopJson += loopEnabled[i] ? "true" : "false";
         }
-        tracksJson+="]";vibJson+="]";loopJson+="]";
+        tracksJson+="]";linksJson+="]";logosJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
                     "\",\"apssid\":\"" + jsonEscape(apSsid) +
                     "\",\"appass\":\"" + jsonEscape(apPassword) +
@@ -640,6 +679,7 @@ load();
                     "\",\"wpass\":\"" + jsonEscape(staPassword) +
                     "\",\"setpass\":\"" + jsonEscape(settingsPassword) + "\",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\",\"logo\":" + String(logoExists?"true":"false") +
                     ",\"tracks\":" + tracksJson +
+                    ",\"links\":" + linksJson + ",\"trackLogos\":" + logosJson +
                     ",\"vibration\":" + vibJson + ",\"loop\":" + loopJson + "}";
         request->send(200, "application/json", json);
     });
@@ -695,6 +735,41 @@ load();
         }
     });
 
+    server.on("/track-logo", HTTP_GET, [](AsyncWebServerRequest *request) {
+        int track = request->hasParam("track") ? request->getParam("track")->value().toInt() : 0;
+        if (track < 1 || track > 8) { request->send(400, "text/plain", "Neplatná skladba"); return; }
+        String path = trackLogoPath(track);
+        if (!LittleFS.exists(path)) { request->send(404, "text/plain", "Logo nenahraté"); return; }
+        String type = "image/jpeg";
+        File f = LittleFS.open(path, "r");
+        if (f) { uint8_t h[8]={0}; size_t n=f.read(h,8); f.close(); if(n>=8 && h[0]==0x89 && h[1]==0x50 && h[2]==0x4E && h[3]==0x47) type="image/png"; }
+        request->send(LittleFS, path, type);
+    });
+
+    server.on("/api/track-logo", HTTP_DELETE, [](AsyncWebServerRequest *request) {
+        if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
+        int track = request->hasParam("track") ? request->getParam("track")->value().toInt() : 0;
+        if (track < 1 || track > 8) { request->send(400, "text/plain", "Neplatná skladba"); return; }
+        String path = trackLogoPath(track); if (LittleFS.exists(path)) LittleFS.remove(path);
+        trackLogoExists[track-1] = false; request->send(200, "text/plain", "Logo skladby odstránené.");
+    });
+
+    server.on("/api/track-logo", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
+        int track = request->hasParam("track") ? request->getParam("track")->value().toInt() : 0;
+        bool ok = track >= 1 && track <= 8 && trackLogoExists[track-1];
+        request->send(ok ? 200 : 500, "text/plain", ok ? "Logo skladby nahraté." : "Logo sa nepodarilo nahrať.");
+    }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+        static File uploadFile; static bool uploadOk; static int uploadTrack;
+        if (index == 0) {
+            uploadTrack = request->hasParam("track") ? request->getParam("track")->value().toInt() : 0; uploadOk = uploadTrack >= 1 && uploadTrack <= 8;
+            String lower=filename; lower.toLowerCase(); if(!(lower.endsWith(".png")||lower.endsWith(".jpg")||lower.endsWith(".jpeg"))) uploadOk=false;
+            if (uploadOk) { String tmp="/track.tmp"; if(LittleFS.exists(tmp))LittleFS.remove(tmp); uploadFile=LittleFS.open(tmp,"w"); if(!uploadFile)uploadOk=false; }
+        }
+        if(uploadOk && uploadFile){ if(index+len>MAX_TRACK_LOGO_SIZE){uploadOk=false;uploadFile.close();LittleFS.remove("/track.tmp");} else if(uploadFile.write(data,len)!=len){uploadOk=false;uploadFile.close();LittleFS.remove("/track.tmp");} }
+        if(final){ if(uploadFile)uploadFile.close(); if(uploadOk){String dst=trackLogoPath(uploadTrack);if(LittleFS.exists(dst))LittleFS.remove(dst);bool renamed=LittleFS.rename("/track.tmp",dst);trackLogoExists[uploadTrack-1]=renamed&&LittleFS.exists(dst);} else if(LittleFS.exists("/track.tmp"))LittleFS.remove("/track.tmp"); }
+    });
+
     server.on("/api/settings", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (!settingsAuthorized(request)) { request->send(401, "text/plain", "Neautorizované"); return; }
 
@@ -715,12 +790,17 @@ load();
         if(newApPassword.length()<8||newApPassword.length()>63){request->send(400,"text/plain","Heslo AP musí mať 8 až 63 znakov.");return;}
         if(newSettingsPassword.length()==0){request->send(400,"text/plain","Heslo pre nastavenia nesmie byť prázdne.");return;}
 
-        String newTrackNames[8];bool newVibration[8];bool newLoop[8];
+        String newTrackNames[8];String newTrackLinks[8];bool newVibration[8];bool newLoop[8];
         for(uint8_t i=0;i<8;i++){
             char param[10];snprintf(param,sizeof(param),"track%u",i+1);
             newTrackNames[i]=request->hasParam(param,true)?request->getParam(param,true)->value():trackNames[i];
             newTrackNames[i].trim();
             if(newTrackNames[i].length()==0)newTrackNames[i]="Skladba "+String(i+1);
+            snprintf(param,sizeof(param),"url%u",i+1);
+            newTrackLinks[i]=request->hasParam(param,true)?request->getParam(param,true)->value():trackLinks[i];
+            newTrackLinks[i].trim();
+            if(newTrackLinks[i].length()>200)newTrackLinks[i]=newTrackLinks[i].substring(0,200);
+            if(newTrackLinks[i].length() && !(newTrackLinks[i].startsWith("http://")||newTrackLinks[i].startsWith("https://"))){request->send(400,"text/plain","Odkaz skladby musí začínať http:// alebo https://.");return;}
             snprintf(param,sizeof(param),"vib%u",i+1);
             newVibration[i]=request->hasParam(param,true);
             snprintf(param,sizeof(param),"lop%u",i+1);
@@ -729,6 +809,7 @@ load();
 
         saveSettings(newDevice,newApSsid,newApPassword,newStaSsid,newStaPassword,
                      newSettingsPassword,currentVolume,newTrackNames,newVibration,newLoop);
+        for(uint8_t i=0;i<8;i++){trackLinks[i]=newTrackLinks[i];preferences.putString(("url"+String(i+1)).c_str(),trackLinks[i]);}
         lastActivityMs=millis();
         wifiRestartPending=true;
         wifiRestartAtMs=millis()+2500UL;
@@ -777,14 +858,16 @@ load();
     });
 
     server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String namesJson="[",vibJson="[",loopJson="[";
+        String namesJson="[",linksJson="[",logosJson="[",vibJson="[",loopJson="[";
         for(uint8_t i=0;i<8;i++){
-            if(i){namesJson+=",";vibJson+=",";loopJson+=",";}
+            if(i){namesJson+=",";linksJson+=",";logosJson+=",";vibJson+=",";loopJson+=",";}
             namesJson+="\"" + jsonEscape(trackNames[i]) + "\"";
+            linksJson+="\"" + jsonEscape(trackLinks[i]) + "\"";
+            logosJson+=trackLogoExists[i] ? "true" : "false";
             vibJson+=vibrationEnabled[i]?"true":"false";
             loopJson+=loopEnabled[i]?"true":"false";
         }
-        namesJson+="]";vibJson+="]";loopJson+="]";
+        namesJson+="]";linksJson+="]";logosJson+="]";vibJson+="]";loopJson+="]";
         String json="{\"device\":\"" + jsonEscape(deviceName) +
                     "\",\"version\":\"" + jsonEscape(BUILD_VERSION) + "\",\"git\":\"" + jsonEscape(BUILD_GIT_SHA) + "\",\"build\":\"" + jsonEscape(BUILD_NUMBER) + "\",\"playing\":" + String(currentPlaying?"true":"false") +
                     ",\"track\":" + String(currentTrack) +
@@ -794,6 +877,7 @@ load();
                     ",\"logo\":" + String(logoExists ? "true" : "false") +
                     ",\"logoUrl\":\"" + jsonEscape(logoUrl) + "\"" +
                     ",\"names\":" + namesJson +
+                    ",\"links\":" + linksJson + ",\"trackLogos\":" + logosJson +
                     ",\"vibration\":" + vibJson + ",\"loop\":" + loopJson + "}";
         request->send(200,"application/json",json);
     });
