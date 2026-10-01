@@ -2,7 +2,7 @@
 
 Prehrávač zvukov založený na module **DY1703A / DY-SV17F** a riadený **ESP32 DevKit**. Projekt obsahuje firmvér, KiCad schému a lokálne KiCad knižnice.
 
-> Dokumentácia zodpovedá aktuálnemu obsahu vetvy `main` a bola pripravená na základe revízie `8a4de6d` z 16. 9. 2026.
+> Dokumentácia zodpovedá aktuálnemu obsahu vetvy `main`.
 
 ## Funkcie
 
@@ -13,15 +13,19 @@ Prehrávač zvukov založený na module **DY1703A / DY-SV17F** a riadený **ESP3
 - Play / Pauza / Stop,
 - hlasitosť 0–30 a uloženie štartovacej hlasitosti,
 - názvy skladieb,
+- pevné identifikátory skladieb 1–8,
+- samostatný externý odkaz pre každú skladbu,
+- samostatné PNG/JPG logo pre každú skladbu,
 - individuálne vibrácie,
 - individuálny LOOP,
 - orientačné meranie batérie,
-- logo PNG/JPG v LittleFS,
-- externý odkaz z loga,
+- hlavné logo PNG/JPG v LittleFS a externý odkaz z hlavného loga,
+- prehľad využitia LittleFS vrátane priestoru obsadeného logami,
 - heslom chránené nastavenia,
 - záloha/obnova konfigurácie,
 - výrobné nastavenia,
 - automatická verzia + Git SHA + build number,
+- pomocný `release.py` na automatické zvýšenie PATCH/MINOR/MAJOR verzie,
 - light sleep,
 - servisné Serial príkazy.
 
@@ -118,6 +122,7 @@ dy1703a-esp32-player/
 │   ├── wiring.md
 │   └── kicad/dy1703a/
 ├── extra_script.py
+├── release.py
 ├── platformio.ini
 └── README.md
 ```
@@ -133,6 +138,23 @@ pio device monitor
 ```
 
 Monitor používa 115200 baud, upload 921600 baud.
+
+## Vydanie novej verzie
+
+Aktuálne číslo verzie netreba zisťovať ani zadávať ručne. Po commitnutí zmien a pri čistom pracovnom strome použite:
+
+```bash
+python release.py
+```
+
+Bez parametra sa automaticky zvýši PATCH. Pre novú funkčnú alebo hlavnú verziu:
+
+```bash
+python release.py minor
+python release.py major
+```
+
+Skript načíta Git tagy, nájde najvyššiu verziu `vMAJOR.MINOR.PATCH`, vypočíta ďalšiu verziu, vypíše ju na kontrolu a až po potvrdení vytvorí anotovaný tag a odošle ho na `origin`.
 
 ## Dokumentácia
 
