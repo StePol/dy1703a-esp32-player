@@ -2,66 +2,54 @@
 
 ## Hlavná stránka
 
-Obsahuje logo, názov zariadenia, verziu, stav prehrávania, 8 skladieb, Play/Pauza/Stop, hlasitosť, batériu a vstup do nastavení.
+Hlavná stránka obsahuje hlavné logo, mriežku ôsmich skladieb, ovládanie prehrávania, hlasitosť, batériu, vstup do nastavení a v spodnej časti názov zariadenia s verziou a Git SHA.
+
+Každá skladba má pevné číslo 1–8. Horná časť karty spustí skladbu. Obrázok skladby je samostatná klikateľná oblasť a po nastavení URL otvorí externý odkaz. Logo skladby sa pri pravidelnom obnovovaní stavu stránky znovu nenačítava.
 
 ## Nastavenie skladieb
 
 Pre každú z 8 skladieb možno nastaviť:
 - názov,
 - vibrácie,
-- LOOP.
+- LOOP,
+- externú URL,
+- vlastné PNG/JPG/JPEG logo do 300 kB.
 
-Na hlavnej stránke sa LOOP a vibrácie zobrazujú samostatnými ikonami.
+Číslo skladby 1–8 je pevný vizuálny identifikátor a nie je editovateľné. Stav loga je v nastaveniach zelený, ak je logo nahraté, a červený, ak chýba. Na hlavnej stránke sa LOOP a vibrácie zobrazujú ikonami.
+
+Logá skladieb sú uložené v LittleFS ako `/track1.logo` až `/track8.logo`.
 
 ## Hlasitosť
 
-Rozsah je 0–30.
-
-`/api/volume?value=N` zmení aktuálnu hlasitosť.
-
-`/api/volume/set?value=N` zmení a uloží hlasitosť do Preferences, takže sa použije po ďalšom štarte.
+Rozsah je 0–30. `/api/volume?value=N` mení aktuálnu hlasitosť a `/api/volume/set?value=N` ju zároveň uloží do Preferences ako štartovaciu hlasitosť.
 
 ## Zariadenie a Wi-Fi
 
 Možno meniť názov zariadenia, AP SSID, AP heslo, domácu Wi-Fi SSID a heslo. Uloženie nastavení vedie k reštartu ESP32.
 
-## Údržba
-
-Obsahuje heslo pre vstup do nastavení, zápis konfigurácie, obnovenie konfigurácie a obnovenie výrobných nastavení.
-
-Výrobné nastavenia podľa aktuálneho firmvéru obnovia názov, AP údaje, STA údaje na prázdne hodnoty, heslo nastavení, hlasitosť 20, názvy skladieb a vypnú vibrácie aj LOOP. Logo sa pritom neodstraňuje.
-
 ## Logo
 
-- PNG/JPG/JPEG
-- max. 300 kB
-- LittleFS: `/logo`
-- voliteľná URL po kliknutí
+Hlavné logo podporuje PNG/JPG/JPEG, maximálne 300 kB, je uložené ako `/logo` v LittleFS a môže mať voliteľnú URL. Stav hlavného loga je v nastaveniach zobrazený rovnakým zeleným/červeným spôsobom ako pri logách skladieb.
+
+## Údržba
+
+Sekcia obsahuje heslo pre vstup do nastavení a blok **Konfigurácia**. Po výbere konfiguračného súboru sú v jednom riadku tlačidlá **Zápis**, **Čítanie** a **Nastavenie z výroby**.
+
+Blok **Pamäť LittleFS** zobrazuje grafické zaplnenie, použité a celkové miesto, voľné miesto a samostatný súčet veľkosti hlavného loga a ôsmich log skladieb.
+
+V spodnej časti celej stránky Nastavenia sa zobrazuje názov zariadenia, verzia a Git SHA.
+
+Výrobné nastavenia obnovia názov, AP údaje, STA údaje na prázdne hodnoty, heslo nastavení, hlasitosť 20, názvy skladieb, odkazy skladieb a vypnú vibrácie aj LOOP. Logá v LittleFS sa pri tomto kroku odstraňujú podľa aktuálnej implementácie resetu.
 
 ## Konfiguračný súbor
 
-```text
-# DY1703A Player configuration
-version=1
-device=...
-apssid=...
-appass=...
-ssid=...
-wpass=...
-setpass=...
-volume=20
-trk1=Skladba 1
-vib1=0
-lop1=0
-...
-trk8=Skladba 8
-vib8=0
-lop8=0
-```
+Záloha obsahuje základné nastavenia zariadenia, Wi-Fi, heslo nastavení, hlasitosť a pre každú skladbu názov, URL, vibrácie a LOOP. Samotné binárne obrázky log nie sú súčasťou textovej konfiguračnej zálohy.
 
 ## Status API
 
-`GET /api/status` vracia device, version, git, build, playing, track, volume, battery, voltage, logo, logoUrl, names, vibration a loop.
+`GET /api/status` vracia okrem základného stavu aj `device`, `version`, `git`, `build`, aktuálnu skladbu, hlasitosť, batériu, hlavné logo a URL, názvy skladieb, odkazy, stav log skladieb, vibrácie a LOOP.
+
+Chránené `GET /api/settings` navyše poskytuje údaje potrebné pre stránku nastavení vrátane `fsTotal`, `fsUsed` a `logoBytes`.
 
 ## Wi-Fi režimy
 
@@ -76,55 +64,57 @@ Pri AP režime sa používa DNS wildcard. Ak po určitý čas nie je pripojený 
 
 ## Bezpečnosť
 
-Predvolené heslo nastavení je `12345` a predvolené AP heslo `password`. Web server používa HTTP bez TLS. Pri reálnom nasadení treba predvolené heslá zmeniť a zariadenie nepovažovať za bezpečný administračný server v nedôveryhodnej sieti.
-
-
+Predvolené heslo nastavení je `12345` a predvolené AP heslo `password`. Web server používa HTTP bez TLS. Pri reálnom nasadení treba predvolené heslá zmeniť.
 
 ## Verziovanie firmvéru
 
-Projekt používa verzie v tvare `MAJOR.MINOR.PATCH` a Git tagy v tvare `vMAJOR.MINOR.PATCH`, napríklad `v1.0.0` alebo `v1.2.3`.
+Projekt používa SemVer `MAJOR.MINOR.PATCH` a Git tagy `vMAJOR.MINOR.PATCH`.
 
-Význam častí verzie:
-- **MAJOR** – hlavná verzia; zvyšuje sa pri významnej alebo nekompatibilnej zmene,
+- **MAJOR** – významná alebo nekompatibilná zmena,
 - **MINOR** – nová funkcia pri zachovaní kompatibility,
-- **PATCH** – oprava alebo menšia úprava bez novej hlavnej funkcie.
+- **PATCH** – oprava alebo menšia úprava.
 
-Verzia sa do firmvéru nezapisuje ručne. PlatformIO spúšťa pred kompiláciou `extra_script.py` cez:
+### Automatické vytvorenie ďalšej verzie
+
+V koreňovom adresári je `release.py`. Číslo aktuálnej verzie si netreba pamätať.
+
+```bash
+python release.py
+```
+
+Bez parametra sa zvýši PATCH. Ďalšie možnosti:
+
+```bash
+python release.py minor
+python release.py major
+```
+
+Skript:
+1. vyžaduje čistý Git working tree,
+2. vykoná `git fetch --tags`,
+3. nájde najvyšší semantický tag `vX.Y.Z`,
+4. vypočíta ďalšie číslo,
+5. zobrazí starú a novú verziu,
+6. vyžiada potvrdenie,
+7. vytvorí anotovaný Git tag,
+8. odošle tag na `origin`.
+
+Ak žiadny semantický tag neexistuje, vychádza z `0.0.0`.
+
+### Verzia pri kompilácii
+
+PlatformIO spúšťa `extra_script.py` cez:
 
 ```ini
 extra_scripts = pre:extra_script.py
 ```
 
-Skript zistí:
-- posledný Git tag pomocou `git describe --tags --abbrev=0`,
-- skrátený 8-znakový SHA aktuálneho commitu pomocou `git rev-parse --short=8 HEAD`,
-- poradové číslo buildu ako počet commitov pomocou `git rev-list --count HEAD`.
+Pre-build skript zistí posledný Git tag, skrátený 8-znakový SHA aktuálneho commitu a počet commitov. Následne v build adresári vytvorí `build_info.h` s `BUILD_VERSION`, `BUILD_GIT_SHA` a `BUILD_NUMBER`.
 
-Ak posledný tag zodpovedá tvaru `vX.Y.Z` alebo `X.Y.Z`, použije sa z neho verzia `X.Y.Z`. Ak platný tag neexistuje, verzia je `0.0.0-dev`.
-
-Pred kompiláciou sa automaticky vytvorí `build_info.h` v build adresári s hodnotami:
-
-```cpp
-#define BUILD_VERSION "1.0.0"
-#define BUILD_GIT_SHA "7519cfbf"
-#define BUILD_NUMBER "..."
-```
-
-Súbor je generovaný automaticky a neukladá sa ručne do zdrojového kódu. Webové rozhranie zobrazuje verziu a skrátený Git SHA, napríklad:
+Web zobrazuje napríklad:
 
 ```text
-v1.0.0 · 7519cfbf
+v1.2.3 · 779f25d5
 ```
 
-Git SHA jednoznačne určuje konkrétny commit použitý pri zostavení. Dôležité je, že aktuálna implementácia používa **posledný dostupný semantický tag**, nie informáciu o počte commitov od tagu. Preto build vytvorený po tage `v1.0.0` môže naďalej zobrazovať `v1.0.0`, pričom konkrétnu revíziu odlišuje Git SHA.
-
-### Vytvorenie novej verzie
-
-Po dokončení a commitnutí zmien sa nová vydaná verzia označí Git tagom, napríklad:
-
-```bash
-git tag v1.1.0
-git push origin v1.1.0
-```
-
-Nasledujúci build automaticky prevezme verziu z tohto tagu. Pri opravnom vydaní sa analogicky použije napríklad `v1.1.1`; pri novej hlavnej verzii napríklad `v2.0.0`.
+Git SHA odlišuje konkrétny build aj vtedy, keď od posledného tagu pribudli ďalšie commity. Bežné `pio run` samo nevytvára novú vydanú verziu.
