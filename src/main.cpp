@@ -503,7 +503,7 @@ button:active{transform:scale(.98)}.active{outline:4px solid #555}
 <div class="batterySide"><div class="battery"><div class="bar" id="bar"></div></div><div class="small" id="bat">--</div></div>
 </div>
 </div>
-<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small"><span id="title" style="font-size:120%"></span> <span id="version"></span></div></div>
+<div class="card"><button class="settingsBtn" onclick="location.href='/settings'">⚙ Nastavenia</button><div class="small" style="font-size:12px"><span id="title" style="font-size:120%"></span> <span id="version" style="font-size:100%"></span></div></div>
 <script>
 const tracks=document.getElementById('tracks');
 for(let i=1;i<=8;i++){
