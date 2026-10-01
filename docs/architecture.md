@@ -36,6 +36,9 @@ Implementuje spínané meranie batérie cez ADC. Delič je počas nečinnosti od
 ### `extra_script.py`
 PlatformIO pre-build skript generujúci informácie o builde z Git-u.
 
+### `release.py`
+Pomocný skript pre vydanie novej semantickej verzie. Automaticky nájde najvyšší tag `vMAJOR.MINOR.PATCH`, zvýši PATCH/MINOR/MAJOR, po potvrdení vytvorí anotovaný tag a odošle ho na `origin`.
+
 ## Stav prehrávania
 
 Firmware používa `currentTrack`, `currentPlaying` a `loopPlaybackArmed`. Približne každých 300 ms číta stav DY1703A. Pri prechode PLAY → STOP a zapnutom LOOP znovu spustí aktuálnu skladbu.
@@ -46,7 +49,7 @@ Preferences namespace:
 
 `settings`
 
-Používané kľúče zahŕňajú `device`, `apssid`, `appass`, `ssid`, `wpass`, `setpass`, `volume`, `logourl`, `trk1..trk8`, `vib1..vib8`, `lop1..lop8`.
+Používané kľúče zahŕňajú `device`, `apssid`, `appass`, `ssid`, `wpass`, `setpass`, `volume`, `logourl`, `trk1..trk8`, `url1..url8`, `vib1..vib8`, `lop1..lop8`.
 
 ## Web API
 
@@ -54,6 +57,7 @@ Verejné:
 ```text
 GET /
 GET /logo
+GET /track-logo?track=N
 GET /api/status
 GET /api/play
 GET /api/pause
@@ -71,6 +75,8 @@ GET  /api/settings
 POST /api/settings
 DELETE /api/logo
 POST /api/logo
+DELETE /api/track-logo?track=N
+POST /api/track-logo?track=N
 POST /api/defaults
 GET  /api/backup
 POST /api/restore
@@ -82,13 +88,11 @@ Po úspešnom prihlásení sa vytvorí session token a cookie `DYSESSION=<token>
 
 ## LittleFS
 
-Používaný súbor:
-`/logo`
+Používané súbory:
+- hlavné logo: `/logo`,
+- logá skladieb: `/track1.logo` až `/track8.logo`.
 
-Dočasný upload:
-`/logo.tmp`
-
-Maximálna veľkosť loga je 300 kB. Po dokončení uploadu sa dočasný súbor premenuje na `/logo`.
+Dočasné uploady používajú `/logo.tmp` a `/track.tmp`. Maximálna veľkosť každého loga je 300 kB. Stránka Údržba zobrazuje celkové/použité/voľné miesto LittleFS a súčet veľkosti všetkých log.
 
 ## Serial API
 
